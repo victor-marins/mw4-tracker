@@ -46,7 +46,7 @@ const DEFAULT_WEAPONS = [
 
 export default function TrackerApp() {
   const [isMounted, setIsMounted] = useState(false);
-  const [mainTab, setMainTab] = useState('global');
+  const [mainTab, setMainTab] = useState('ranking');
   const [activeCategory, setActiveCategory] = useState('Fuzis de Assalto');
   const [currentUser, setCurrentUser] = useState('Marins');
   const [weapons, setWeapons] = useState(DEFAULT_WEAPONS);
