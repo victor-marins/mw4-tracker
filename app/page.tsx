@@ -11,37 +11,56 @@ const CATEGORY_TARGETS = {
 const DEFAULT_USERS = ['Marins', 'NoobMaszter', 'Pagno', 'Willlemes'];
 
 const DEFAULT_WEAPONS = [
-  { id: 'ar1', name: 'XM4', category: 'Fuzis de Assalto' },
-  { id: 'ar2', name: 'AK-74', category: 'Fuzis de Assalto' },
-  { id: 'ar3', name: 'AMES 85', category: 'Fuzis de Assalto' },
-  { id: 'ar4', name: 'GPR 91', category: 'Fuzis de Assalto' },
-  { id: 'ar5', name: 'MODEL L', category: 'Fuzis de Assalto' },
-  { id: 'ar6', name: 'GOBLIN MK2', category: 'Fuzis de Assalto' },
-  { id: 'ar7', name: 'AS VAL', category: 'Fuzis de Assalto' },
-  { id: 'ar8', name: 'Krig C', category: 'Fuzis de Assalto' },
-  { id: 'smg1', name: 'C9', category: 'SMTs' },
-  { id: 'smg2', name: 'KSV', category: 'SMTs' },
-  { id: 'smg3', name: 'TANTO .22', category: 'SMTs' },
-  { id: 'smg4', name: 'PP-919', category: 'SMTs' },
-  { id: 'smg5', name: 'JACKAL PDW', category: 'SMTs' },
-  { id: 'sg1', name: 'MARINE SP', category: 'Escopetas' },
-  { id: 'sg2', name: 'ASG-89', category: 'Escopetas' },
-  { id: 'lmg1', name: 'PU-21', category: 'MLs' },
-  { id: 'lmg2', name: 'XMG', category: 'MLs' },
-  { id: 'lmg3', name: 'GPMG-7', category: 'MLs' },
-  { id: 'mr1', name: 'SWAT 5.56', category: 'Fuzis de Atirador' },
-  { id: 'mr2', name: 'TSARKOV 7.62', category: 'Fuzis de Atirador' },
-  { id: 'mr3', name: 'AEK-973', category: 'Fuzis de Atirador' },
-  { id: 'sn1', name: 'LW3A1 FROSTLINE', category: 'Fuzis de Precisão' },
-  { id: 'sn2', name: 'SVD', category: 'Fuzis de Precisão' },
-  { id: 'sn3', name: 'LR 7.62', category: 'Fuzis de Precisão' },
-  { id: 'pi1', name: '9MM PM', category: 'Pistolas' },
-  { id: 'pi2', name: 'GREKHOVA', category: 'Pistolas' },
-  { id: 'pi3', name: 'GS45', category: 'Pistolas' },
-  { id: 'pi4', name: 'STRYDER .22', category: 'Pistolas' },
-  { id: 'la1', name: 'CIGMA 2B', category: 'Lançadores' },
-  { id: 'la2', name: 'HE-1', category: 'Lançadores' },
-  { id: 'me1', name: 'FACA', category: 'Corpo a Corpo' }
+  // Fuzis de Assalto[cite: 7]
+  { id: 'ar1', name: 'HYEON BURST', category: 'Fuzis de Assalto' },
+  { id: 'ar2', name: 'M4', category: 'Fuzis de Assalto' },
+  { id: 'ar3', name: 'HAN 86', category: 'Fuzis de Assalto' },
+  { id: 'ar4', name: 'KASTOV 762', category: 'Fuzis de Assalto' },
+  { id: 'ar5', name: 'AXION', category: 'Fuzis de Assalto' },
+  { id: 'ar6', name: 'CRONEN SQUALL', category: 'Fuzis de Assalto' },
+  { id: 'ar7', name: 'PATRIOT XMR', category: 'Fuzis de Assalto' },
+  { id: 'ar8', name: 'ODEN', category: 'Fuzis de Assalto' },
+
+  // SMTs[cite: 8]
+  { id: 'smg1', name: 'X-58 NYX', category: 'SMTs' },
+  { id: 'smg2', name: 'VEL 46', category: 'SMTs' },
+  { id: 'smg3', name: 'ISO NIGHTSHADE', category: 'SMTs' },
+  { id: 'smg4', name: 'PPSH-41', category: 'SMTs' },
+  { id: 'smg5', name: 'WZ.55 STRIGA', category: 'SMTs' },
+
+  // Escopetas[cite: 9]
+  { id: 'sg1', name: 'REZI 12', category: 'Escopetas' },
+  { id: 'sg2', name: 'WARLORD', category: 'Escopetas' },
+
+  // MLs[cite: 10]
+  { id: 'lmg1', name: 'APOC-338', category: 'MLs' },
+  { id: 'lmg2', name: 'ML FINN', category: 'MLs' },
+  { id: 'lmg3', name: 'TYPE 73', category: 'MLs' },
+
+  // Fuzis de Atirador[cite: 11]
+  { id: 'mr1', name: 'MAR-9', category: 'Fuzis de Atirador' },
+  { id: 'mr2', name: 'ORIS 8.6', category: 'Fuzis de Atirador' },
+  { id: 'mr3', name: 'MOSIN-NAGANT', category: 'Fuzis de Atirador' },
+
+  // Fuzis de Precisão[cite: 12]
+  { id: 'sn1', name: 'SIGNAL 50', category: 'Fuzis de Precisão' },
+  { id: 'sn2', name: 'ASTAROTH .57', category: 'Fuzis de Precisão' },
+  { id: 'sn3', name: 'KG-7 VULCAN', category: 'Fuzis de Precisão' },
+
+  // Pistolas[cite: 13]
+  { id: 'pi1', name: '.50 GS', category: 'Pistolas' },
+  { id: 'pi2', name: 'SANG 9 MM', category: 'Pistolas' },
+  { id: 'pi3', name: 'MOJAVE .357', category: 'Pistolas' },
+  { id: 'pi4', name: 'KRAIT P68', category: 'Pistolas' },
+
+  // Lançadores[cite: 14]
+  { id: 'la1', name: 'PILA', category: 'Lançadores' },
+  { id: 'la2', name: 'RPG-8', category: 'Lançadores' },
+  { id: 'la3', name: 'JOKR', category: 'Lançadores' },
+  { id: 'la4', name: 'PM-40 ANVIL', category: 'Lançadores' },
+
+  // Corpo a Corpo[cite: 15]
+  { id: 'me1', name: 'FSS CARBON EDGE 1095', category: 'Corpo a Corpo' }
 ];
 
 export default function TrackerApp() {
