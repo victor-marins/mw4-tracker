@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { getTrackerData, saveTrackerData } from './actions';
+import { getTrackerData, saveTrackerData } from '@/app/actions';
 
 const CATEGORY_TARGETS = {
   'Fuzis de Assalto': 8, 'SMTs': 5, 'Escopetas': 2, 'MLs': 3,
