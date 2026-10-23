@@ -45,6 +45,7 @@ const DEFAULT_WEAPONS = [
 ];
 
 export default function TrackerApp() {
+  const [isMounted, setIsMounted] = useState(false);
   const [mainTab, setMainTab] = useState('global');
   const [activeCategory, setActiveCategory] = useState('Fuzis de Assalto');
   const [currentUser, setCurrentUser] = useState('Marins');
@@ -65,16 +66,18 @@ export default function TrackerApp() {
     const savedCategory = localStorage.getItem('mw4_category');
     if (savedCategory) setActiveCategory(savedCategory);
 
-    handleRefresh();
+    handleRefresh().finally(() => {
+      setIsMounted(true);
+    });
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('mw4_maintab', mainTab);
-  }, [mainTab]);
+    if (isMounted) localStorage.setItem('mw4_maintab', mainTab);
+  }, [mainTab, isMounted]);
 
   useEffect(() => {
-    localStorage.setItem('mw4_category', activeCategory);
-  }, [activeCategory]);
+    if (isMounted) localStorage.setItem('mw4_category', activeCategory);
+  }, [activeCategory, isMounted]);
 
   const handleRefresh = async () => {
     setIsUpdating(true);
@@ -376,6 +379,18 @@ export default function TrackerApp() {
     );
   };
 
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-[#0f1217] flex items-center justify-center">
+        <div className="w-12 h-12 bg-[#0f1217] border border-cyan-800 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.2)] animate-pulse">
+          <svg className="w-8 h-8 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v4m0 8v4m8-8h-4M4 12h4m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0f1217] text-slate-200 font-sans">
       <nav className="bg-[#161a20] border-b border-slate-800 sticky top-0 z-40">
@@ -428,7 +443,6 @@ export default function TrackerApp() {
         </div>
       )}
 
-      {/* Navegação Principal Topo */}
       <div className="border-b border-slate-800 bg-[#161a20]">
         <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto">
           <button onClick={() => setMainTab('ranking')} className={`shrink-0 flex items-center gap-2 px-6 py-4 text-sm font-bold tracking-widest uppercase border-b-2 transition-colors ${mainTab === 'ranking' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
@@ -447,7 +461,6 @@ export default function TrackerApp() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        
         {mainTab === 'ranking' && renderRanking()}
         {mainTab === 'global' && renderGlobalProgress()}
         
