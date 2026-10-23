@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { getTrackerData, saveTrackerData } from '@/app/actions';
+import { getTrackerData, saveTrackerData } from './actions';
 
 const CATEGORY_TARGETS = {
   'Fuzis de Assalto': 8, 'SMTs': 5, 'Escopetas': 2, 'MLs': 3,
@@ -45,7 +45,8 @@ const DEFAULT_WEAPONS = [
 ];
 
 export default function TrackerApp() {
-  const [activeTab, setActiveTab] = useState('ranking');
+  const [mainTab, setMainTab] = useState('global');
+  const [activeCategory, setActiveCategory] = useState('Fuzis de Assalto');
   const [currentUser, setCurrentUser] = useState('Marins');
   const [weapons, setWeapons] = useState(DEFAULT_WEAPONS);
   const [progress, setProgress] = useState<any>({});
@@ -178,7 +179,7 @@ export default function TrackerApp() {
     };
 
     return (
-      <div className="space-y-8 animate-fade-in pb-12">
+      <div className="space-y-8 animate-fade-in pb-12 mt-6">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold tracking-wider text-slate-100 uppercase">Classificação Geral</h2>
           <p className="text-slate-400 mt-2 text-sm">O ranking oficial do esquadrão.</p>
@@ -232,6 +233,88 @@ export default function TrackerApp() {
             ))}
           </div>
         )}
+      </div>
+    );
+  };
+
+  const renderGlobalProgress = () => {
+    const pctDissonancia = Math.min(100, Math.round((totalPlatinas / 33) * 100));
+    const pctDivergencia = Math.min(100, Math.round((totalDissonancias / 33) * 100));
+
+    return (
+      <div className="space-y-8 animate-fade-in mt-6">
+        <div className="bg-[#14171c] border border-slate-800 rounded-xl p-6 shadow-lg">
+          <h2 className="text-xl font-black text-slate-100 flex items-center gap-3 tracking-wider mb-6">
+            <svg className="w-6 h-6 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            RELATÓRIO DE MAESTRIA: {currentUser.toUpperCase()}
+          </h2>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="border border-slate-700/50 bg-[#0f1217] rounded-lg p-5">
+              <div className="flex justify-between items-end mb-4">
+                <div>
+                  <div className="text-cyan-400 font-bold text-sm tracking-widest uppercase mb-1">Progresso Global: Dissonância</div>
+                  <div className="text-4xl font-black text-white">{pctDissonancia}%</div>
+                </div>
+                <div className="text-slate-400 text-xs font-mono">{totalPlatinas} / 33 Platinas</div>
+              </div>
+              <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-cyan-500 transition-all duration-1000" style={{ width: `${pctDissonancia}%` }}></div>
+              </div>
+            </div>
+
+            <div className="border border-slate-700/50 bg-[#0f1217] rounded-lg p-5">
+              <div className="flex justify-between items-end mb-4">
+                <div>
+                  <div className="text-purple-400 font-bold text-sm tracking-widest uppercase mb-1">Progresso Global: Divergência</div>
+                  <div className="text-4xl font-black text-white">{pctDivergencia}%</div>
+                </div>
+                <div className="text-slate-400 text-xs font-mono">{totalDissonancias} / 33 Dissonâncias</div>
+              </div>
+              <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-purple-500 transition-all duration-1000" style={{ width: `${pctDivergencia}%` }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2 tracking-wide uppercase">
+            <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Status para Platina (Por Categoria)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Object.entries(CATEGORY_TARGETS).map(([cat, target]) => {
+              const current = categoryGoldCounts[cat] || 0;
+              const pct = Math.min(100, Math.round((current / target) * 100));
+              const isComplete = current >= target;
+              
+              return (
+                <div key={cat} className={`border rounded-lg p-4 transition-colors ${isComplete ? 'border-yellow-600/50 bg-yellow-900/10' : 'border-slate-800 bg-[#14171c]'}`}>
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-slate-300">{cat}</h4>
+                    {isComplete ? (
+                      <svg className="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-end mb-2">
+                    <div className={`text-2xl font-black ${isComplete ? 'text-yellow-500' : 'text-yellow-500/80'}`}>{pct}%</div>
+                    <div className="text-[10px] font-mono text-slate-500">{current}/{target} Ouros</div>
+                  </div>
+                  <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                    <div className={`h-full transition-all duration-1000 ${isComplete ? 'bg-yellow-500' : 'bg-yellow-600'}`} style={{ width: `${pct}%` }}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
   };
@@ -323,51 +406,61 @@ export default function TrackerApp() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-[#14171c] rounded-xl border border-slate-800 p-4 mb-8 flex flex-wrap gap-4 items-center justify-between">
-          <div className="flex items-center space-x-3">
-             <div className="w-2 h-12 bg-cyan-500 rounded-full"></div>
-             <div>
-               <div className="text-slate-500 text-xs font-bold tracking-widest uppercase">Operador Atual</div>
-               <div className="text-2xl font-black text-slate-100 uppercase">{currentUser}</div>
-             </div>
-          </div>
-          <div className="flex space-x-6">
-             <div className="text-center bg-slate-900/50 p-2 px-4 rounded border border-slate-800/50">
-                <div className="text-[10px] text-cyan-500 font-bold tracking-widest">DISSONÂNCIA</div>
-                <div className="text-xl font-mono font-bold text-slate-200">{totalPlatinas} <span className="text-slate-600">/ 33</span></div>
-             </div>
-             <div className="text-center bg-slate-900/50 p-2 px-4 rounded border border-slate-800/50">
-                <div className="text-[10px] text-purple-500 font-bold tracking-widest">DIVERGÊNCIA</div>
-                <div className="text-xl font-mono font-bold text-slate-200">{totalDissonancias} <span className="text-slate-600">/ 33</span></div>
-             </div>
-          </div>
-        </div>
-
-        <div className="flex overflow-x-auto pb-4 mb-6 space-x-2 border-b border-slate-800">
-          <button onClick={() => setActiveTab('ranking')} className={`shrink-0 flex items-center space-x-2 px-4 py-2 border rounded-t-lg ${activeTab === 'ranking' ? 'border-yellow-600 border-b-0 bg-yellow-600/10 text-yellow-500 font-bold' : 'border-transparent text-slate-500 hover:text-slate-300 font-medium'}`}>
-             <span>RANKING</span>
+      {/* Navegação Principal Topo */}
+      <div className="border-b border-slate-800 bg-[#161a20]">
+        <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto">
+          <button onClick={() => setMainTab('ranking')} className={`shrink-0 flex items-center gap-2 px-6 py-4 text-sm font-bold tracking-widest uppercase border-b-2 transition-colors ${mainTab === 'ranking' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
+             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+             Ranking
           </button>
-          {Object.keys(CATEGORY_TARGETS).map(cat => (
-            <button key={cat} onClick={() => setActiveTab(cat)} className={`shrink-0 flex items-center space-x-2 px-4 py-2 border rounded-t-lg ${activeTab === cat ? 'border-cyan-700 border-b-0 bg-[#1a1e24] text-cyan-400 font-bold' : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 font-medium'}`}>
-              <span>{cat.toUpperCase()}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${activeTab === cat ? 'bg-cyan-950 text-cyan-300' : 'bg-slate-800 text-slate-400'}`}>
-                {categoryGoldCounts[cat] || 0}/{CATEGORY_TARGETS[cat as keyof typeof CATEGORY_TARGETS]}
-              </span>
-            </button>
-          ))}
+          <button onClick={() => setMainTab('arsenal')} className={`shrink-0 flex items-center gap-2 px-6 py-4 text-sm font-bold tracking-widest uppercase border-b-2 transition-colors ${mainTab === 'arsenal' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
+             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+             Arsenal
+          </button>
+          <button onClick={() => setMainTab('global')} className={`shrink-0 flex items-center gap-2 px-6 py-4 text-sm font-bold tracking-widest uppercase border-b-2 transition-colors ${mainTab === 'global' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
+             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+             Progresso Global
+          </button>
         </div>
+      </div>
 
-        {activeTab === 'ranking' ? renderRanking() : (
-           <div>
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        
+        {/* Renderiza o conteúdo baseado na aba principal */}
+        {mainTab === 'ranking' && renderRanking()}
+        {mainTab === 'global' && renderGlobalProgress()}
+        
+        {mainTab === 'arsenal' && (
+           <div className="animate-fade-in">
+              <div className="bg-[#14171c] rounded-xl border border-slate-800 p-4 mb-8 flex flex-wrap gap-4 items-center justify-between">
+                <div className="flex items-center space-x-3">
+                   <div className="w-2 h-12 bg-cyan-500 rounded-full"></div>
+                   <div>
+                     <div className="text-slate-500 text-xs font-bold tracking-widest uppercase">Operador Atual</div>
+                     <div className="text-2xl font-black text-slate-100 uppercase">{currentUser}</div>
+                   </div>
+                </div>
+              </div>
+
+              <div className="flex overflow-x-auto pb-4 mb-6 space-x-2 border-b border-slate-800">
+                {Object.keys(CATEGORY_TARGETS).map(cat => (
+                  <button key={cat} onClick={() => setActiveCategory(cat)} className={`shrink-0 flex items-center space-x-2 px-4 py-2 border rounded-t-lg ${activeCategory === cat ? 'border-cyan-700 border-b-0 bg-[#1a1e24] text-cyan-400 font-bold' : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 font-medium'}`}>
+                    <span>{cat.toUpperCase()}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${activeCategory === cat ? 'bg-cyan-950 text-cyan-300' : 'bg-slate-800 text-slate-400'}`}>
+                      {categoryGoldCounts[cat] || 0}/{CATEGORY_TARGETS[cat as keyof typeof CATEGORY_TARGETS]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold tracking-wider text-slate-300 uppercase">{activeTab}</h2>
+                <h2 className="text-xl font-bold tracking-wider text-slate-300 uppercase">{activeCategory}</h2>
                 <button onClick={() => setShowAddWeaponModal(true)} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded flex items-center space-x-1 border border-slate-700">
                   <span>NOVA ARMA</span>
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {weapons.filter((w: any) => w.category === activeTab).map(renderWeaponCard)}
+                {weapons.filter((w: any) => w.category === activeCategory).map(renderWeaponCard)}
               </div>
            </div>
         )}
