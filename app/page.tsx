@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { getTrackerData, saveTrackerData } from '@/app/actions';
+import { getTrackerData, saveTrackerData } from './actions';
 
 const CATEGORY_TARGETS = {
   'Fuzis de Assalto': 8, 'SMTs': 5, 'Escopetas': 2, 'MLs': 3,
@@ -58,8 +58,23 @@ export default function TrackerApp() {
   useEffect(() => {
     const savedUser = localStorage.getItem('mw4_user');
     if (savedUser) setCurrentUser(savedUser);
+
+    const savedTab = localStorage.getItem('mw4_maintab');
+    if (savedTab) setMainTab(savedTab);
+
+    const savedCategory = localStorage.getItem('mw4_category');
+    if (savedCategory) setActiveCategory(savedCategory);
+
     handleRefresh();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('mw4_maintab', mainTab);
+  }, [mainTab]);
+
+  useEffect(() => {
+    localStorage.setItem('mw4_category', activeCategory);
+  }, [activeCategory]);
 
   const handleRefresh = async () => {
     setIsUpdating(true);
@@ -366,11 +381,18 @@ export default function TrackerApp() {
       <nav className="bg-[#161a20] border-b border-slate-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center space-x-3">
-             <div className="w-8 h-8 bg-cyan-600 rounded flex items-center justify-center text-white font-black italic">MW4</div>
-             <span className="font-black text-xl tracking-widest text-slate-100 hidden sm:block">MAESTRIA</span>
+             <div className="w-10 h-10 bg-[#0f1217] border border-cyan-800 rounded-xl flex items-center justify-center shadow-[0_0_10px_rgba(34,211,238,0.1)]">
+               <svg className="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v4m0 8v4m8-8h-4M4 12h4m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+               </svg>
+             </div>
+             <div className="font-black text-2xl tracking-wider hidden sm:flex">
+               <span className="text-white uppercase">MW4</span>
+               <span className="text-cyan-400 uppercase ml-1.5">TRACKER</span>
+             </div>
           </div>
           
-          <button onClick={handleRefresh} disabled={isUpdating} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded text-sm font-bold border border-slate-700 disabled:opacity-50">
+          <button onClick={handleRefresh} disabled={isUpdating} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded text-sm font-bold border border-slate-700 disabled:opacity-50 transition-colors">
             <svg className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
@@ -426,7 +448,6 @@ export default function TrackerApp() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         
-        {/* Renderiza o conteúdo baseado na aba principal */}
         {mainTab === 'ranking' && renderRanking()}
         {mainTab === 'global' && renderGlobalProgress()}
         
