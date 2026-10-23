@@ -1,15 +1,25 @@
 'use server'
-import { kv } from '@vercel/kv';
-import { revalidatePath } from 'next/cache';
 
-const DB_KEY = 'mw4_tracker_state';
+import { kv } from '@vercel/kv';
+
+const DB_KEY = 'mw4_tracker_data';
 
 export async function getTrackerData() {
-  const data = await kv.get(DB_KEY);
-  return data || null;
+  try {
+    const data = await kv.get(DB_KEY);
+    return data; 
+  } catch (error) {
+    console.error('Erro ao ler do banco:', error);
+    return null;
+  }
 }
 
-export async function saveTrackerData(newData: any) {
-  await kv.set(DB_KEY, newData);
-  revalidatePath('/');
+export async function saveTrackerData(data: any) {
+  try {
+    await kv.set(DB_KEY, data);
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao salvar no banco:', error);
+    return { success: false };
+  }
 }
