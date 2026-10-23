@@ -99,14 +99,26 @@ export default function TrackerApp() {
   }, [activeCategory, isMounted]);
 
   const handleRefresh = async () => {
-    setIsUpdating(true);
-    const serverData: any = await getTrackerData();
-    if (serverData) {
-      if (serverData.weapons) setWeapons(serverData.weapons);
-      if (serverData.progress) setProgress(serverData.progress);
-    }
-    setIsUpdating(false);
-  };
+      setIsUpdating(true);
+      const serverData: any = await getTrackerData();
+      if (serverData) {
+        if (serverData.weapons) {
+          // Separa as armas customizadas salvas no banco
+          const customWeapons = serverData.weapons.filter((w: any) => w.isCustom);
+          // Força a junção da lista oficial atualizada no código com as customizadas
+          const updatedWeapons = [...DEFAULT_WEAPONS, ...customWeapons];
+          
+          setWeapons(updatedWeapons);
+          
+          // Atualiza o banco silenciosamente com a nova lista oficial
+          if (serverData.progress) {
+            syncData(serverData.progress, updatedWeapons);
+          }
+        }
+        if (serverData.progress) setProgress(serverData.progress);
+      }
+      setIsUpdating(false);
+    };
 
   const syncData = async (newProgress: any, newWeapons: any) => {
     setProgress(newProgress);
