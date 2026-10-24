@@ -11,7 +11,6 @@ const CATEGORY_TARGETS = {
 const DEFAULT_USERS = ['Marins', 'NoobMaszter', 'Pagno', 'Willlemes'];
 
 const DEFAULT_WEAPONS = [
-  // Fuzis de Assalto[cite: 7]
   { id: 'ar1', name: 'HYEON BURST', category: 'Fuzis de Assalto' },
   { id: 'ar2', name: 'M4', category: 'Fuzis de Assalto' },
   { id: 'ar3', name: 'HAN 86', category: 'Fuzis de Assalto' },
@@ -20,51 +19,37 @@ const DEFAULT_WEAPONS = [
   { id: 'ar6', name: 'CRONEN SQUALL', category: 'Fuzis de Assalto' },
   { id: 'ar7', name: 'PATRIOT XMR', category: 'Fuzis de Assalto' },
   { id: 'ar8', name: 'ODEN', category: 'Fuzis de Assalto' },
-
-  // SMTs[cite: 8]
   { id: 'smg1', name: 'X-58 NYX', category: 'SMTs' },
   { id: 'smg2', name: 'VEL 46', category: 'SMTs' },
   { id: 'smg3', name: 'ISO NIGHTSHADE', category: 'SMTs' },
   { id: 'smg4', name: 'PPSH-41', category: 'SMTs' },
   { id: 'smg5', name: 'WZ.55 STRIGA', category: 'SMTs' },
-
-  // Escopetas[cite: 9]
   { id: 'sg1', name: 'REZI 12', category: 'Escopetas' },
   { id: 'sg2', name: 'WARLORD', category: 'Escopetas' },
-
-  // MLs[cite: 10]
   { id: 'lmg1', name: 'APOC-338', category: 'MLs' },
   { id: 'lmg2', name: 'ML FINN', category: 'MLs' },
   { id: 'lmg3', name: 'TYPE 73', category: 'MLs' },
-
-  // Fuzis de Atirador[cite: 11]
   { id: 'mr1', name: 'MAR-9', category: 'Fuzis de Atirador' },
   { id: 'mr2', name: 'ORIS 8.6', category: 'Fuzis de Atirador' },
   { id: 'mr3', name: 'MOSIN-NAGANT', category: 'Fuzis de Atirador' },
-
-  // Fuzis de Precisão[cite: 12]
   { id: 'sn1', name: 'SIGNAL 50', category: 'Fuzis de Precisão' },
   { id: 'sn2', name: 'ASTAROTH .57', category: 'Fuzis de Precisão' },
   { id: 'sn3', name: 'KG-7 VULCAN', category: 'Fuzis de Precisão' },
-
-  // Pistolas[cite: 13]
   { id: 'pi1', name: '.50 GS', category: 'Pistolas' },
   { id: 'pi2', name: 'SANG 9 MM', category: 'Pistolas' },
   { id: 'pi3', name: 'MOJAVE .357', category: 'Pistolas' },
   { id: 'pi4', name: 'KRAIT P68', category: 'Pistolas' },
-
-  // Lançadores[cite: 14]
   { id: 'la1', name: 'PILA', category: 'Lançadores' },
   { id: 'la2', name: 'RPG-8', category: 'Lançadores' },
   { id: 'la3', name: 'JOKR', category: 'Lançadores' },
   { id: 'la4', name: 'PM-40 ANVIL', category: 'Lançadores' },
-
-  // Corpo a Corpo[cite: 15]
   { id: 'me1', name: 'FSS CARBON EDGE 1095', category: 'Corpo a Corpo' }
 ];
 
 export default function TrackerApp() {
   const [isMounted, setIsMounted] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
+  
   const [mainTab, setMainTab] = useState('ranking');
   const [activeCategory, setActiveCategory] = useState('Fuzis de Assalto');
   const [currentUser, setCurrentUser] = useState('Marins');
@@ -76,8 +61,17 @@ export default function TrackerApp() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
+    const savedLoggedUser = localStorage.getItem('mw4_logged_user');
+    if (savedLoggedUser) {
+      setLoggedInUser(savedLoggedUser);
+    }
+
     const savedUser = localStorage.getItem('mw4_user');
-    if (savedUser) setCurrentUser(savedUser);
+    if (savedUser) {
+      setCurrentUser(savedUser);
+    } else if (savedLoggedUser) {
+      setCurrentUser(savedLoggedUser);
+    }
 
     const savedTab = localStorage.getItem('mw4_maintab');
     if (savedTab) setMainTab(savedTab);
@@ -98,27 +92,35 @@ export default function TrackerApp() {
     if (isMounted) localStorage.setItem('mw4_category', activeCategory);
   }, [activeCategory, isMounted]);
 
+  const handleLogin = (user: string) => {
+    setLoggedInUser(user);
+    setCurrentUser(user);
+    localStorage.setItem('mw4_logged_user', user);
+    localStorage.setItem('mw4_user', user);
+  };
+
+  const handleLogout = () => {
+    setLoggedInUser(null);
+    localStorage.removeItem('mw4_logged_user');
+    setIsSidebarOpen(false);
+  };
+
   const handleRefresh = async () => {
-      setIsUpdating(true);
-      const serverData: any = await getTrackerData();
-      if (serverData) {
-        if (serverData.weapons) {
-          // Separa as armas customizadas salvas no banco
-          const customWeapons = serverData.weapons.filter((w: any) => w.isCustom);
-          // Força a junção da lista oficial atualizada no código com as customizadas
-          const updatedWeapons = [...DEFAULT_WEAPONS, ...customWeapons];
-          
-          setWeapons(updatedWeapons);
-          
-          // Atualiza o banco silenciosamente com a nova lista oficial
-          if (serverData.progress) {
-            syncData(serverData.progress, updatedWeapons);
-          }
+    setIsUpdating(true);
+    const serverData: any = await getTrackerData();
+    if (serverData) {
+      if (serverData.weapons) {
+        const customWeapons = serverData.weapons.filter((w: any) => w.isCustom);
+        const updatedWeapons = [...DEFAULT_WEAPONS, ...customWeapons];
+        setWeapons(updatedWeapons);
+        if (serverData.progress) {
+          syncData(serverData.progress, updatedWeapons);
         }
-        if (serverData.progress) setProgress(serverData.progress);
       }
-      setIsUpdating(false);
-    };
+      if (serverData.progress) setProgress(serverData.progress);
+    }
+    setIsUpdating(false);
+  };
 
   const syncData = async (newProgress: any, newWeapons: any) => {
     setProgress(newProgress);
@@ -133,6 +135,7 @@ export default function TrackerApp() {
   };
 
   const userProgress = progress[currentUser] || {};
+  const isEditingAllowed = currentUser === loggedInUser;
   
   const categoryGoldCounts = weapons.reduce((acc: any, wp: any) => {
     if (!acc[wp.category]) acc[wp.category] = 0;
@@ -144,6 +147,8 @@ export default function TrackerApp() {
   const totalDissonancias = Object.values(userProgress).filter((p: any) => p.dissonancia).length;
 
   const handleToggleCamo = (weaponId: string, camoType: string) => {
+    if (!isEditingAllowed) return; // Trava de segurança extra no código
+
     const wpProgress = userProgress[weaponId] || { ouro: false, platina: false, dissonancia: false, divergencia: false };
     const newValue = !wpProgress[camoType];
     
@@ -193,18 +198,17 @@ export default function TrackerApp() {
     syncData(updatedProgress, updatedWeapons);
   };
 
+  // Funções de renderização visual (Ranking, Progresso) ficam idênticas...
   const renderRanking = () => {
     const playersData = DEFAULT_USERS.map(user => {
       const pData = progress[user] || {};
       let ouros = 0, platinas = 0, dissonancias = 0, divergencias = 0;
-      
       Object.values(pData).forEach((w: any) => {
         if (w.ouro) ouros++;
         if (w.platina) platinas++;
         if (w.dissonancia) dissonancias++;
         if (w.divergencia) divergencias++;
       });
-      
       const score = ouros + (platinas * 2) + (dissonancias * 3) + (divergencias * 4);
       return { user, ouros, platinas, dissonancias, divergencias, score };
     });
@@ -377,6 +381,11 @@ export default function TrackerApp() {
     const canDissonancia = wpProgress.platina && totalPlatinas >= 33;
     const canDivergencia = wpProgress.dissonancia && totalDissonancias >= 33;
 
+    // Se não for o usuário logado, aplica classes de desabilitação e opacidade
+    const buttonBaseClasses = isEditingAllowed 
+      ? 'cursor-pointer hover:brightness-110' 
+      : 'cursor-not-allowed opacity-50';
+
     return (
       <div key={wp.id} className="bg-[#1a1e24] rounded-lg border border-slate-700 overflow-hidden relative group">
         <div className="p-3 border-b border-slate-700 bg-[#14171c] flex items-center justify-between">
@@ -384,7 +393,7 @@ export default function TrackerApp() {
             <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
             <h3 className="font-bold text-slate-200 tracking-wider text-sm">{wp.name}</h3>
           </div>
-          {wp.isCustom && (
+          {wp.isCustom && isEditingAllowed && (
             <button 
               onClick={() => handleDeleteWeapon(wp.id)}
               className="text-red-500/50 hover:text-red-500 transition-colors md:opacity-0 md:group-hover:opacity-100"
@@ -395,14 +404,14 @@ export default function TrackerApp() {
         </div>
         
         <div className="p-3 grid grid-cols-2 xl:grid-cols-4 gap-2">
-          <button onClick={() => handleToggleCamo(wp.id, 'ouro')} className={`p-2 rounded border text-xs font-bold h-12 ${wpProgress.ouro ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500' : 'bg-slate-800 border-slate-600 text-slate-400'}`}>OURO</button>
-          <button onClick={() => canPlatina && handleToggleCamo(wp.id, 'platina')} className={`p-2 rounded border text-xs font-bold h-12 flex flex-col items-center justify-center ${wpProgress.platina ? 'bg-slate-300/10 border-slate-300 text-slate-300' : canPlatina ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'}`}>
+          <button onClick={() => isEditingAllowed && handleToggleCamo(wp.id, 'ouro')} className={`p-2 rounded border text-xs font-bold h-12 transition-all ${buttonBaseClasses} ${wpProgress.ouro ? 'bg-yellow-500/10 border-yellow-500 text-yellow-500' : 'bg-slate-800 border-slate-600 text-slate-400'}`}>OURO</button>
+          <button onClick={() => isEditingAllowed && canPlatina && handleToggleCamo(wp.id, 'platina')} className={`p-2 rounded border text-xs font-bold h-12 flex flex-col items-center justify-center transition-all ${buttonBaseClasses} ${wpProgress.platina ? 'bg-slate-300/10 border-slate-300 text-slate-300' : canPlatina ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed opacity-50'}`}>
             {!canPlatina ? <><span className="text-[10px]">{!wpProgress.ouro ? 'REQUER OURO' : `FALTAM ${Math.max(0, catTarget - catGolds)}`}</span></> : 'PLATINA'}
           </button>
-          <button onClick={() => canDissonancia && handleToggleCamo(wp.id, 'dissonancia')} className={`p-2 rounded border text-xs font-bold h-12 flex flex-col items-center justify-center ${wpProgress.dissonancia ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400' : canDissonancia ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'}`}>
+          <button onClick={() => isEditingAllowed && canDissonancia && handleToggleCamo(wp.id, 'dissonancia')} className={`p-2 rounded border text-xs font-bold h-12 flex flex-col items-center justify-center transition-all ${buttonBaseClasses} ${wpProgress.dissonancia ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400' : canDissonancia ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed opacity-50'}`}>
             {!canDissonancia ? <><span className="text-[10px]">{!wpProgress.platina ? 'REQUER PLATINA' : `FALTAM ${Math.max(0, 33 - totalPlatinas)}`}</span></> : 'DISSONÂNCIA'}
           </button>
-          <button onClick={() => canDivergencia && handleToggleCamo(wp.id, 'divergencia')} className={`p-2 rounded border text-xs font-bold h-12 flex flex-col items-center justify-center ${wpProgress.divergencia ? 'bg-purple-600/10 border-purple-500 text-purple-400' : canDivergencia ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed'}`}>
+          <button onClick={() => isEditingAllowed && canDivergencia && handleToggleCamo(wp.id, 'divergencia')} className={`p-2 rounded border text-xs font-bold h-12 flex flex-col items-center justify-center transition-all ${buttonBaseClasses} ${wpProgress.divergencia ? 'bg-purple-600/10 border-purple-500 text-purple-400' : canDivergencia ? 'bg-slate-800 border-slate-600 text-slate-400' : 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed opacity-50'}`}>
             {!canDivergencia ? <><span className="text-[10px]">{!wpProgress.dissonancia ? 'REQUER DISS.' : `FALTAM ${Math.max(0, 33 - totalDissonancias)}`}</span></> : 'DIVERGÊNCIA'}
           </button>
         </div>
@@ -410,6 +419,7 @@ export default function TrackerApp() {
     );
   };
 
+  // Ecrã de Carregamento
   if (!isMounted) {
     return (
       <div className="min-h-screen bg-[#0f1217] flex items-center justify-center">
@@ -422,6 +432,51 @@ export default function TrackerApp() {
     );
   }
 
+  // Ecrã de Seleção de Usuário (Login Simples)
+  if (!loggedInUser) {
+    return (
+      <div className="min-h-screen bg-[#0f1217] flex flex-col items-center justify-center p-6 relative">
+        {/* Fundo decorativo */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-900/20 rounded-full blur-[100px]"></div>
+        </div>
+        
+        <div className="relative z-10 w-full max-w-md animate-fade-in">
+          <div className="flex flex-col items-center mb-10">
+            <div className="w-16 h-16 bg-[#0f1217] border border-cyan-800 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.15)] mb-6">
+              <svg className="w-10 h-10 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v4m0 8v4m8-8h-4M4 12h4m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-widest text-center">
+              MW4 <span className="text-cyan-400">TRACKER</span>
+            </h1>
+            <p className="text-slate-400 text-sm mt-3 uppercase tracking-wider font-bold">Identifique seu Operador</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {DEFAULT_USERS.map(user => (
+              <button 
+                key={user} 
+                onClick={() => handleLogin(user)} 
+                className="group relative bg-[#161a20] border border-slate-700 hover:border-cyan-500 overflow-hidden rounded-xl p-6 transition-all hover:-translate-y-1 shadow-lg"
+              >
+                <div className="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative flex items-center justify-center gap-3">
+                  <svg className="w-5 h-5 text-slate-500 group-hover:text-cyan-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="text-slate-200 font-bold text-lg group-hover:text-white transition-colors">{user}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Dashboard Principal
   return (
     <div className="min-h-screen bg-[#0f1217] text-slate-200 font-sans">
       <nav className="bg-[#161a20] border-b border-slate-800 sticky top-0 z-40">
@@ -438,38 +493,54 @@ export default function TrackerApp() {
              </div>
           </div>
           
-          <button onClick={handleRefresh} disabled={isUpdating} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded text-sm font-bold border border-slate-700 disabled:opacity-50 transition-colors">
-            <svg className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span className="hidden sm:inline">ATUALIZAR</span>
-          </button>
+          <div className="flex items-center gap-4">
+            <button onClick={handleRefresh} disabled={isUpdating} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded text-sm font-bold border border-slate-700 disabled:opacity-50 transition-colors">
+              <svg className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="hidden lg:inline">ATUALIZAR</span>
+            </button>
 
-          <div className="hidden md:flex space-x-2 bg-slate-900 p-1 rounded-lg border border-slate-800">
-            {DEFAULT_USERS.map(user => (
-              <button key={user} onClick={() => changeUser(user)} className={`px-4 py-1.5 rounded text-sm font-bold tracking-wide transition-colors ${currentUser === user ? 'bg-cyan-900/50 text-cyan-400 border border-cyan-800/50' : 'text-slate-500 hover:text-slate-300'}`}>
-                {user}
-              </button>
-            ))}
+            <div className="hidden md:flex space-x-2 bg-slate-900 p-1 rounded-lg border border-slate-800">
+              {DEFAULT_USERS.map(user => (
+                <button key={user} onClick={() => changeUser(user)} className={`px-4 py-1.5 rounded text-sm font-bold tracking-wide transition-colors ${currentUser === user ? 'bg-cyan-900/50 text-cyan-400 border border-cyan-800/50' : 'text-slate-500 hover:text-slate-300'}`}>
+                  {user}
+                </button>
+              ))}
+            </div>
+
+            {/* Botão de Trocar Conta / Logout (Desktop) */}
+            <button onClick={handleLogout} className="hidden md:flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors ml-2" title="Trocar Operador">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            </button>
+
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-2 text-slate-400">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
           </div>
-
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-2 text-slate-400">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-          </button>
         </div>
       </nav>
 
       {isSidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-[#0f1217]/95 backdrop-blur pt-20 px-6">
+        <div className="md:hidden fixed inset-0 z-50 bg-[#0f1217]/95 backdrop-blur pt-20 px-6 flex flex-col">
           <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 p-2 text-slate-400">
             <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
-          <div className="flex flex-col space-y-2">
+          
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Visualizar Arsenal de:</div>
+          <div className="flex flex-col space-y-2 mb-8">
             {DEFAULT_USERS.map(user => (
               <button key={user} onClick={() => changeUser(user)} className={`p-4 rounded-lg text-left font-bold border ${currentUser === user ? 'bg-cyan-900/30 border-cyan-700 text-cyan-400' : 'bg-slate-800 border-slate-700 text-slate-300'}`}>
                 {user}
               </button>
             ))}
+          </div>
+
+          <div className="mt-auto pb-8">
+             <button onClick={handleLogout} className="w-full p-4 rounded-lg text-center font-bold border border-red-900/50 bg-red-900/20 text-red-400 flex items-center justify-center gap-2">
+               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+               TROCAR MEU OPERADOR
+             </button>
           </div>
         </div>
       )}
@@ -497,12 +568,17 @@ export default function TrackerApp() {
         
         {mainTab === 'arsenal' && (
            <div className="animate-fade-in">
-              <div className="bg-[#14171c] rounded-xl border border-slate-800 p-4 mb-8 flex flex-wrap gap-4 items-center justify-between">
-                <div className="flex items-center space-x-3">
-                   <div className="w-2 h-12 bg-cyan-500 rounded-full"></div>
+              <div className="bg-[#14171c] rounded-xl border border-slate-800 p-4 mb-8 flex flex-wrap gap-4 items-center justify-between relative overflow-hidden">
+                {!isEditingAllowed && (
+                  <div className="absolute top-0 right-0 bg-red-900/50 text-red-200 text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
+                    Modo Leitura (Apenas {currentUser} pode editar)
+                  </div>
+                )}
+                <div className="flex items-center space-x-3 mt-2 sm:mt-0">
+                   <div className={`w-2 h-12 rounded-full ${isEditingAllowed ? 'bg-cyan-500' : 'bg-slate-600'}`}></div>
                    <div>
-                     <div className="text-slate-500 text-xs font-bold tracking-widest uppercase">Operador Atual</div>
-                     <div className="text-2xl font-black text-slate-100 uppercase">{currentUser}</div>
+                     <div className="text-slate-500 text-xs font-bold tracking-widest uppercase">Arsenal de</div>
+                     <div className={`text-2xl font-black uppercase ${isEditingAllowed ? 'text-slate-100' : 'text-slate-400'}`}>{currentUser}</div>
                    </div>
                 </div>
               </div>
@@ -520,10 +596,13 @@ export default function TrackerApp() {
 
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold tracking-wider text-slate-300 uppercase">{activeCategory}</h2>
-                <button onClick={() => setShowAddWeaponModal(true)} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded flex items-center space-x-1 border border-slate-700">
-                  <span>NOVA ARMA</span>
-                </button>
+                {isEditingAllowed && (
+                  <button onClick={() => setShowAddWeaponModal(true)} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded flex items-center space-x-1 border border-slate-700">
+                    <span>NOVA ARMA</span>
+                  </button>
+                )}
               </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {weapons.filter((w: any) => w.category === activeCategory).map(renderWeaponCard)}
               </div>
@@ -531,12 +610,12 @@ export default function TrackerApp() {
         )}
       </main>
 
-      {showAddWeaponModal && (
+      {showAddWeaponModal && isEditingAllowed && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#14171c] border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
               <h3 className="text-lg font-bold text-slate-200">ADICIONAR NOVA ARMA</h3>
-              <button onClick={() => setShowAddWeaponModal(false)} className="text-slate-500">X</button>
+              <button onClick={() => setShowAddWeaponModal(false)} className="text-slate-500 hover:text-white transition-colors">X</button>
             </div>
             <form onSubmit={handleAddWeapon} className="space-y-4">
               <div>
@@ -549,7 +628,7 @@ export default function TrackerApp() {
                   {Object.keys(CATEGORY_TARGETS).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
-              <button type="submit" className="w-full bg-cyan-700 text-white font-bold py-3 rounded mt-4">SALVAR NO ARSENAL</button>
+              <button type="submit" className="w-full bg-cyan-700 hover:bg-cyan-600 transition-colors text-white font-bold py-3 rounded mt-4">SALVAR NO ARSENAL</button>
             </form>
           </div>
         </div>
