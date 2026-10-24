@@ -61,16 +61,16 @@ export default function TrackerApp() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
+    // 1. Resolve o estado local (Síncrono e Instantâneo)
     const savedLoggedUser = localStorage.getItem('mw4_logged_user');
-    if (savedLoggedUser) {
+    if (savedLoggedUser && savedLoggedUser !== 'null') {
       setLoggedInUser(savedLoggedUser);
+      setCurrentUser(savedLoggedUser);
     }
 
     const savedUser = localStorage.getItem('mw4_user');
-    if (savedUser) {
+    if (savedUser && savedUser !== 'null') {
       setCurrentUser(savedUser);
-    } else if (savedLoggedUser) {
-      setCurrentUser(savedLoggedUser);
     }
 
     const savedTab = localStorage.getItem('mw4_maintab');
@@ -79,9 +79,11 @@ export default function TrackerApp() {
     const savedCategory = localStorage.getItem('mw4_category');
     if (savedCategory) setActiveCategory(savedCategory);
 
-    handleRefresh().finally(() => {
-      setIsInitializing(false);
-    });
+    // 2. Liberta imediatamente o render da interface correta
+    setIsInitializing(false);
+
+    // 3. Busca atualizações de rede silenciosamente
+    handleRefresh();
   }, []);
 
   useEffect(() => {
@@ -107,17 +109,21 @@ export default function TrackerApp() {
 
   const handleRefresh = async () => {
     setIsUpdating(true);
-    const serverData: any = await getTrackerData();
-    if (serverData) {
-      if (serverData.weapons) {
-        const customWeapons = serverData.weapons.filter((w: any) => w.isCustom);
-        const updatedWeapons = [...DEFAULT_WEAPONS, ...customWeapons];
-        setWeapons(updatedWeapons);
-        if (serverData.progress) {
-          syncData(serverData.progress, updatedWeapons);
+    try {
+      const serverData: any = await getTrackerData();
+      if (serverData) {
+        if (serverData.weapons) {
+          const customWeapons = serverData.weapons.filter((w: any) => w.isCustom);
+          const updatedWeapons = [...DEFAULT_WEAPONS, ...customWeapons];
+          setWeapons(updatedWeapons);
+          if (serverData.progress) {
+            syncData(serverData.progress, updatedWeapons);
+          }
         }
+        if (serverData.progress) setProgress(serverData.progress);
       }
-      if (serverData.progress) setProgress(serverData.progress);
+    } catch (error) {
+      console.error("Falha ao buscar dados", error);
     }
     setIsUpdating(false);
   };
