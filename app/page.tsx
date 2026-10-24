@@ -8,7 +8,7 @@ const CATEGORY_TARGETS = {
   'Lançadores': 4, 'Corpo a Corpo': 1,
 };
 
-const DEFAULT_USERS = ['Marins', 'NoobMaszter', 'Pagno', 'Willlemes'];
+const DEFAULT_USERS = ['Marins', 'NoobMaszter', 'Pagno', 'Willlemes', 'itnaS'];
 
 const DEFAULT_WEAPONS = [
   { id: 'ar1', name: 'HYEON BURST', category: 'Fuzis de Assalto' },
@@ -47,7 +47,7 @@ const DEFAULT_WEAPONS = [
 ];
 
 export default function TrackerApp() {
-  const [isMounted, setIsMounted] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
   
   const [mainTab, setMainTab] = useState('ranking');
@@ -80,17 +80,17 @@ export default function TrackerApp() {
     if (savedCategory) setActiveCategory(savedCategory);
 
     handleRefresh().finally(() => {
-      setIsMounted(true);
+      setIsInitializing(false);
     });
   }, []);
 
   useEffect(() => {
-    if (isMounted) localStorage.setItem('mw4_maintab', mainTab);
-  }, [mainTab, isMounted]);
+    if (!isInitializing) localStorage.setItem('mw4_maintab', mainTab);
+  }, [mainTab, isInitializing]);
 
   useEffect(() => {
-    if (isMounted) localStorage.setItem('mw4_category', activeCategory);
-  }, [activeCategory, isMounted]);
+    if (!isInitializing) localStorage.setItem('mw4_category', activeCategory);
+  }, [activeCategory, isInitializing]);
 
   const handleLogin = (user: string) => {
     setLoggedInUser(user);
@@ -147,7 +147,7 @@ export default function TrackerApp() {
   const totalDissonancias = Object.values(userProgress).filter((p: any) => p.dissonancia).length;
 
   const handleToggleCamo = (weaponId: string, camoType: string) => {
-    if (!isEditingAllowed) return; // Trava de segurança extra no código
+    if (!isEditingAllowed) return; 
 
     const wpProgress = userProgress[weaponId] || { ouro: false, platina: false, dissonancia: false, divergencia: false };
     const newValue = !wpProgress[camoType];
@@ -198,7 +198,6 @@ export default function TrackerApp() {
     syncData(updatedProgress, updatedWeapons);
   };
 
-  // Funções de renderização visual (Ranking, Progresso) ficam idênticas...
   const renderRanking = () => {
     const playersData = DEFAULT_USERS.map(user => {
       const pData = progress[user] || {};
@@ -381,7 +380,6 @@ export default function TrackerApp() {
     const canDissonancia = wpProgress.platina && totalPlatinas >= 33;
     const canDivergencia = wpProgress.dissonancia && totalDissonancias >= 33;
 
-    // Se não for o usuário logado, aplica classes de desabilitação e opacidade
     const buttonBaseClasses = isEditingAllowed 
       ? 'cursor-pointer hover:brightness-110' 
       : 'cursor-not-allowed opacity-50';
@@ -419,8 +417,7 @@ export default function TrackerApp() {
     );
   };
 
-  // Ecrã de Carregamento
-  if (!isMounted) {
+  if (isInitializing) {
     return (
       <div className="min-h-screen bg-[#0f1217] flex items-center justify-center">
         <div className="w-12 h-12 bg-[#0f1217] border border-cyan-800 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.2)] animate-pulse">
@@ -432,16 +429,14 @@ export default function TrackerApp() {
     );
   }
 
-  // Ecrã de Seleção de Usuário (Login Simples)
   if (!loggedInUser) {
     return (
       <div className="min-h-screen bg-[#0f1217] flex flex-col items-center justify-center p-6 relative">
-        {/* Fundo decorativo */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-900/20 rounded-full blur-[100px]"></div>
         </div>
         
-        <div className="relative z-10 w-full max-w-md animate-fade-in">
+        <div className="relative z-10 w-full max-w-lg animate-fade-in">
           <div className="flex flex-col items-center mb-10">
             <div className="w-16 h-16 bg-[#0f1217] border border-cyan-800 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.15)] mb-6">
               <svg className="w-10 h-10 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -476,7 +471,6 @@ export default function TrackerApp() {
     );
   }
 
-  // Dashboard Principal
   return (
     <div className="min-h-screen bg-[#0f1217] text-slate-200 font-sans">
       <nav className="bg-[#161a20] border-b border-slate-800 sticky top-0 z-40">
@@ -509,7 +503,6 @@ export default function TrackerApp() {
               ))}
             </div>
 
-            {/* Botão de Trocar Conta / Logout (Desktop) */}
             <button onClick={handleLogout} className="hidden md:flex items-center gap-2 text-slate-500 hover:text-red-400 transition-colors ml-2" title="Trocar Operador">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
             </button>
