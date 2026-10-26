@@ -1,11 +1,28 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { applyCamo, categoryTarget, countInCategory, lockReason, RuleError } from '@/lib/rules';
+import { applyCamo, categoryTarget, countInCategory, lockReason, RuleError, type CamoChange } from '@/lib/rules';
 import { highestCamo } from '@/lib/stats';
-import { CAMOS, CAMO_LABELS, type Camo, type Weapon } from '@/lib/types';
+import { CAMOS, CAMO_LABELS, type Camo, type PlayerProgress, type Weapon } from '@/lib/types';
 import { CATEGORIES } from '@/lib/weapons';
-import { buttonPrimary, buttonSecondary, CAMO_STYLE, inputClass, labelClass, Modal, timeAgo } from './ui';
+import {
+  buttonPrimary,
+  buttonSecondary,
+  CAMO_STYLE,
+  ConfirmDialog,
+  inputClass,
+  labelClass,
+  Modal,
+  timeAgo,
+} from './ui';
 import type { Tracker } from './useTracker';
+
+interface PendingToggle {
+  weapon: Weapon;
+  camo: Camo;
+  value: boolean;
+  next: PlayerProgress;
+  cascade: CamoChange[];
+}
 
 export function Arsenal({ tracker, me, viewed, now }: { tracker: Tracker; me: string; viewed: string; now: number }) {
   const state = tracker.state!;
@@ -32,30 +49,33 @@ export function Arsenal({ tracker, me, viewed, now }: { tracker: Tracker; me: st
     }
   };
 
+  const [pending, setPending] = useState<PendingToggle | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Weapon | null>(null);
+
   const toggle = (weapon: Weapon, camo: Camo) => {
     if (!canEdit) return;
     const mine = state.progress[me] ?? {};
     const value = mine[weapon.id]?.[camo] === undefined;
-    let result;
     try {
-      result = applyCamo(mine, state.weapons, weapon.id, camo, value, now);
+      const result = applyCamo(mine, state.weapons, weapon.id, camo, value, now);
+      const cascade = result.changes.filter((c) => !(c.weaponId === weapon.id && c.camo === camo));
+      setPending({ weapon, camo, value, next: result.next, cascade });
     } catch (error) {
       if (error instanceof RuleError) return;
       throw error;
     }
-    const cascade = result.changes.filter((c) => !(c.weaponId === weapon.id && c.camo === camo));
-    if (cascade.length) {
-      const names = cascade
-        .map((c) => `${CAMO_LABELS[c.camo]} (${state.weapons.find((w) => w.id === c.weaponId)?.name})`)
-        .join('\n');
-      if (!window.confirm(`Remover ${CAMO_LABELS[camo]} da ${weapon.name} também remove:\n\n${names}\n\nContinuar?`)) return;
-    }
-    tracker.setProgress(me, weapon.id, camo, value, result.next);
   };
 
-  const deleteWeapon = (weapon: Weapon) => {
-    if (!window.confirm(`Excluir ${weapon.name}? O progresso de todo o esquadrão nessa arma será apagado.`)) return;
-    tracker.mutate(`/api/weapons/${encodeURIComponent(weapon.id)}`, 'DELETE');
+  const confirmToggle = () => {
+    if (!pending) return;
+    tracker.setProgress(me, pending.weapon.id, pending.camo, pending.value, pending.next);
+    setPending(null);
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    tracker.mutate(`/api/weapons/${encodeURIComponent(pendingDelete.id)}`, 'DELETE');
+    setPendingDelete(null);
   };
 
   return (
@@ -118,7 +138,7 @@ export function Arsenal({ tracker, me, viewed, now }: { tracker: Tracker; me: st
                 <h3 className="font-bold text-slate-200 tracking-wider text-sm">{weapon.name}</h3>
                 {weapon.isCustom && canEdit && (
                   <button
-                    onClick={() => deleteWeapon(weapon)}
+                    onClick={() => setPendingDelete(weapon)}
                     className="text-red-500/50 hover:text-red-500 transition-colors md:opacity-0 md:group-hover:opacity-100"
                     aria-label={`Excluir ${weapon.name}`}
                   >
@@ -160,6 +180,50 @@ export function Arsenal({ tracker, me, viewed, now }: { tracker: Tracker; me: st
       </div>
 
       {showAdd && <AddWeaponModal tracker={tracker} defaultCategory={category} onClose={() => setShowAdd(false)} />}
+
+      {pending && (
+        <ConfirmDialog
+          title={pending.value ? 'Marcar camuflagem' : 'Remover camuflagem'}
+          confirmLabel={pending.value ? 'MARCAR' : 'REMOVER'}
+          danger={!pending.value}
+          onConfirm={confirmToggle}
+          onCancel={() => setPending(null)}
+        >
+          <p>
+            {pending.value ? 'Marcar' : 'Remover'}{' '}
+            <span className={`font-bold ${CAMO_STYLE[pending.camo].text}`}>{CAMO_LABELS[pending.camo]}</span>{' '}
+            {pending.value ? 'na' : 'da'} <span className="font-bold text-slate-100">{pending.weapon.name}</span>?
+          </p>
+          {pending.cascade.length > 0 && (
+            <div className="bg-red-950/40 border border-red-900/60 rounded-lg p-3 text-sm">
+              <p className="text-red-200 font-bold mb-2">Também será removido:</p>
+              <ul className="space-y-1">
+                {pending.cascade.map((c) => (
+                  <li key={`${c.weaponId}-${c.camo}`}>
+                    <span className={`font-bold ${CAMO_STYLE[c.camo].text}`}>{CAMO_LABELS[c.camo]}</span>{' '}
+                    {state.weapons.find((w) => w.id === c.weaponId)?.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </ConfirmDialog>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="Excluir arma"
+          confirmLabel="EXCLUIR"
+          danger
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        >
+          <p>
+            Excluir <span className="font-bold text-slate-100">{pendingDelete.name}</span>? O progresso de todo o esquadrão
+            nessa arma será apagado.
+          </p>
+        </ConfirmDialog>
+      )}
     </div>
   );
 }

@@ -106,6 +106,43 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
   );
 }
 
+export function ConfirmDialog({
+  title,
+  confirmLabel,
+  danger = false,
+  onConfirm,
+  onCancel,
+  children,
+}: {
+  title: string;
+  confirmLabel: string;
+  danger?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Modal title={title} onClose={onCancel}>
+      <div className="text-slate-300 space-y-3">{children}</div>
+      <div className="flex gap-3 mt-6">
+        <button type="button" onClick={onCancel} className={`${buttonSecondary} flex-1 py-2.5! text-sm!`}>
+          CANCELAR
+        </button>
+        <button
+          type="button"
+          autoFocus
+          onClick={onConfirm}
+          className={`flex-1 font-bold py-2.5 px-4 rounded text-white transition-colors ${
+            danger ? 'bg-red-700 hover:bg-red-600' : 'bg-cyan-700 hover:bg-cyan-600'
+          }`}
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export const inputClass =
   'w-full bg-[#0f1217] border border-slate-700 rounded p-2.5 text-slate-200 focus:border-cyan-600 focus:outline-none';
 export const labelClass = 'block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider';
