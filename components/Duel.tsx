@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { camoTotals, categoryTarget, countInCategory } from '@/lib/rules';
 import { highestCamo } from '@/lib/stats';
 import { CAMOS, CAMO_LABELS, type Camo, type TrackerState, type Weapon } from '@/lib/types';
@@ -7,10 +7,38 @@ import { CATEGORIES } from '@/lib/weapons';
 import { CAMO_STYLE, inputClass, playerColor, SectionTitle } from './ui';
 
 const rank = (camo: Camo | null) => (camo ? CAMOS.indexOf(camo) + 1 : 0);
+const DUEL_KEY = 'mw4_duel';
 
 export function Duel({ state, me }: { state: TrackerState; me: string }) {
-  const [a, setA] = useState(me);
-  const [b, setB] = useState(state.players.find((p) => p !== me) ?? me);
+  const [selectedA, setA] = useState(me);
+  const [selectedB, setB] = useState(state.players.find((p) => p !== me) ?? me);
+  const a = state.players.includes(selectedA) ? selectedA : me;
+  const b = state.players.includes(selectedB) ? selectedB : (state.players.find((p) => p !== a) ?? me);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(DUEL_KEY) ?? 'null');
+      if (state.players.includes(saved?.a) && state.players.includes(saved?.b)) {
+        queueMicrotask(() => {
+          setA(saved.a);
+          setB(saved.b);
+        });
+      }
+    } catch {
+      return;
+    }
+  }, [state.players]);
+
+  const choose = (side: 'a' | 'b', player: string) => {
+    const pair = side === 'a' ? { a: player, b } : { a, b: player };
+    setA(pair.a);
+    setB(pair.b);
+    try {
+      localStorage.setItem(DUEL_KEY, JSON.stringify(pair));
+    } catch {
+      return;
+    }
+  };
   const ppA = state.progress[a] ?? {};
   const ppB = state.progress[b] ?? {};
   const totalsA = camoTotals(ppA, state.weapons);
@@ -40,9 +68,9 @@ export function Duel({ state, me }: { state: TrackerState; me: string }) {
       <SectionTitle hint="Compare dois operadores lado a lado">1v1</SectionTitle>
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 mb-8">
-        <PlayerSelect players={state.players} value={a} onChange={setA} label="Operador A" />
+        <PlayerSelect players={state.players} value={a} onChange={(p) => choose('a', p)} label="Operador A" />
         <span className="text-slate-500 font-black">VS</span>
-        <PlayerSelect players={state.players} value={b} onChange={setB} label="Operador B" />
+        <PlayerSelect players={state.players} value={b} onChange={(p) => choose('b', p)} label="Operador B" />
       </div>
 
       <div className="bg-[#14171c] border border-slate-800 rounded-xl divide-y divide-slate-800">
