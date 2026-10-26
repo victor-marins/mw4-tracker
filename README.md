@@ -8,7 +8,12 @@ Tracker de camuflagens do esquadrão no Modern Warfare 4: Ouro → Platina → D
 - **1v1**: comparação lado a lado.
 
 Cada um escolhe o próprio nome na entrada (fica salvo no navegador) e só edita o próprio arsenal.
+Toda marcação e remoção pede confirmação. A Atividade mostra só o que continua marcado.
 A tela se atualiza sozinha a cada 15 s.
+
+**Membros**: o Marins tem o botão MEMBROS no topo para adicionar ou remover pessoas. Quem é removido
+some das telas, mas o progresso fica guardado e volta se for adicionado de novo com o mesmo nome.
+Como não há senha, a restrição vale para a tela: quem entrar como Marins consegue gerenciar.
 
 ## Rodar localmente
 

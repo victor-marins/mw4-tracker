@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { RuleError } from '../rules';
 import type { TrackerState } from '../types';
-import { DEFAULT_PLAYERS } from '../weapons';
 import { getState, ValidationError } from './repo';
 
 export function json(data: unknown, status = 200) {
@@ -18,7 +17,7 @@ export async function readBody(request: Request): Promise<Record<string, unknown
 }
 
 export function currentState(): Promise<TrackerState> {
-  return getState(DEFAULT_PLAYERS);
+  return getState();
 }
 
 export async function handle(handler: () => Promise<Response>): Promise<Response> {

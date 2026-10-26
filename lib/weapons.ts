@@ -13,6 +13,7 @@ export const CATEGORIES = [
 ] as const;
 
 export const DEFAULT_PLAYERS = ['Marins', 'NoobMaszter', 'Pagno', 'Willlemes', 'itnaS'];
+export const ADMIN_PLAYER = 'Marins';
 
 export const DEFAULT_WEAPONS: Weapon[] = [
   { id: 'ar1', name: 'HYEON BURST', category: 'Fuzis de Assalto' },

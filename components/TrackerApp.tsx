@@ -6,6 +6,8 @@ import { Duel } from './Duel';
 import { GlobalProgress } from './GlobalProgress';
 import { HistoryChart } from './HistoryChart';
 import { LoginScreen, Logo } from './LoginScreen';
+import { MembersModal } from './Members';
+import { ADMIN_PLAYER } from '@/lib/weapons';
 import { Ranking } from './Ranking';
 import { playerColor, timeAgo, useNow } from './ui';
 import { useTracker, type Tracker } from './useTracker';
@@ -73,6 +75,7 @@ function Dashboard({ tracker, me, onLogout }: { tracker: Tracker; me: string; on
   const now = useNow(10_000);
   const [tab, setTab] = useState<TabId>('ranking');
   const [viewed, setViewed] = useState(me);
+  const [showMembers, setShowMembers] = useState(false);
 
   useEffect(() => {
     const saved = readStored('mw4_tab');
@@ -123,6 +126,15 @@ function Dashboard({ tracker, me, onLogout }: { tracker: Tracker; me: string; on
                 {tracker.lastSync ? `sincronizado ${timeAgo(tracker.lastSync, Math.max(now, tracker.lastSync))}` : ''}
               </span>
             </button>
+
+            {me === ADMIN_PLAYER && (
+              <button
+                onClick={() => setShowMembers(true)}
+                className="text-xs font-bold text-slate-400 hover:text-slate-200 border border-slate-700 rounded px-2.5 py-1.5"
+              >
+                MEMBROS
+              </button>
+            )}
 
             <div className="flex items-center gap-2 pl-3 border-l border-slate-800">
               <span
@@ -200,6 +212,7 @@ function Dashboard({ tracker, me, onLogout }: { tracker: Tracker; me: string; on
         {tab === 'duelo' && <Duel state={state} me={me} />}
       </main>
 
+      {showMembers && <MembersModal tracker={tracker} me={me} onClose={() => setShowMembers(false)} />}
       {tracker.error && <ErrorToast message={tracker.error} onClose={tracker.clearError} />}
     </div>
   );

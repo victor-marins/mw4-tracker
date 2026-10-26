@@ -10,7 +10,7 @@ import {
   type Weapon,
   type WeaponProgress,
 } from '../types';
-import { DEFAULT_PLAYERS, DEFAULT_WEAPONS, isCategory } from '../weapons';
+import { ADMIN_PLAYER, DEFAULT_PLAYERS, DEFAULT_WEAPONS, isCategory } from '../weapons';
 import { getStore, type Store } from './store';
 
 const PREFIX = 'mw4:v2:';
@@ -19,6 +19,7 @@ export const KEYS = {
   progress: (player: string) => `${PREFIX}progress:${player}`,
   feed: `${PREFIX}feed`,
   migrated: `${PREFIX}migrated`,
+  players: `${PREFIX}players`,
 };
 export const LEGACY_KEY = 'mw4_tracker_data';
 const FEED_LIMIT = 200;
@@ -82,7 +83,13 @@ export async function getWeapons(store: Store = getStore()): Promise<Weapon[]> {
   return [...DEFAULT_WEAPONS, ...custom];
 }
 
-export async function getState(players: string[], store: Store = getStore()): Promise<TrackerState> {
+export async function getPlayers(store: Store = getStore()): Promise<string[]> {
+  const players = parse<string[]>(await store.get(KEYS.players));
+  return Array.isArray(players) && players.length ? players : DEFAULT_PLAYERS;
+}
+
+export async function getState(store: Store = getStore()): Promise<TrackerState> {
+  const players = await getPlayers(store);
   await ensureReady(store, players);
   const [weapons, feedRaw, progressHashes] = await Promise.all([
     getWeapons(store),
@@ -97,8 +104,14 @@ export async function getState(players: string[], store: Store = getStore()): Pr
     players,
     weapons,
     progress,
-    feed: feedRaw.map((raw) => parse<FeedEvent>(raw)).filter((e): e is FeedEvent => e !== null),
+    feed: feedRaw
+      .map((raw) => parse<FeedEvent>(raw))
+      .filter((e): e is FeedEvent => e !== null && isStillUnlocked(e, progress)),
   };
+}
+
+function isStillUnlocked(event: FeedEvent, progress: Progress): boolean {
+  return event.action === 'unlock' && progress[event.player]?.[event.weaponId]?.[event.camo] === event.ts;
 }
 
 export interface CamoUpdate {
@@ -116,7 +129,7 @@ export async function setCamo(
   now = Date.now(),
   store: Store = getStore(),
 ): Promise<CamoUpdate> {
-  if (!DEFAULT_PLAYERS.includes(player)) throw new ValidationError('Jogador desconhecido');
+  if (!(await getPlayers(store)).includes(player)) throw new ValidationError('Jogador desconhecido');
   const weapons = await getWeapons(store);
   const before = parseHash<WeaponProgress>(await store.hGetAll(KEYS.progress(player)));
   const { next, changes } = applyCamo(before, weapons, weaponId, camo, value, now);
@@ -132,7 +145,10 @@ export async function setCamo(
     camo: change.camo,
     action: change.action,
   }));
-  await appendFeed(store, events);
+  await appendFeed(
+    store,
+    events.filter((e) => e.action === 'unlock'),
+  );
   return { before, after: next, weapons, events };
 }
 
@@ -166,11 +182,38 @@ export async function addWeapon(input: { name?: unknown; category?: unknown }, n
   return weapon;
 }
 
-export async function deleteWeapon(weaponId: string, players: string[], store: Store = getStore()) {
+export async function deleteWeapon(weaponId: string, store: Store = getStore()) {
   const weapons = await getWeapons(store);
   const weapon = weapons.find((w) => w.id === weaponId);
   if (!weapon) throw new ValidationError('Arma não encontrada');
   if (!weapon.isCustom) throw new ValidationError('Só armas adicionadas pelo esquadrão podem ser excluídas');
   await store.hDel(KEYS.customWeapons, [weaponId]);
-  await Promise.all(players.map((p) => store.hDel(KEYS.progress(p), [weaponId])));
+  await Promise.all((await getPlayers(store)).map((p) => store.hDel(KEYS.progress(p), [weaponId])));
+}
+
+function assertAdmin(actor: unknown) {
+  if (actor !== ADMIN_PLAYER) throw new ValidationError(`Só ${ADMIN_PLAYER} pode gerenciar os membros`);
+}
+
+export async function addPlayer(actor: unknown, input: unknown, store: Store = getStore()): Promise<string[]> {
+  assertAdmin(actor);
+  const name = typeof input === 'string' ? input.trim() : '';
+  if (!/^[\p{L}\p{N}_.-]{2,20}$/u.test(name)) {
+    throw new ValidationError('Nome inválido: 2 a 20 letras, números, ponto, hífen ou _');
+  }
+  const players = await getPlayers(store);
+  if (players.some((p) => p.toLowerCase() === name.toLowerCase())) throw new ValidationError('Esse membro já existe');
+  const next = [...players, name];
+  await store.set(KEYS.players, JSON.stringify(next));
+  return next;
+}
+
+export async function removePlayer(actor: unknown, name: string, store: Store = getStore()): Promise<string[]> {
+  assertAdmin(actor);
+  if (name === ADMIN_PLAYER) throw new ValidationError(`${ADMIN_PLAYER} não pode ser removido`);
+  const players = await getPlayers(store);
+  if (!players.includes(name)) throw new ValidationError('Membro não encontrado');
+  const next = players.filter((p) => p !== name);
+  await store.set(KEYS.players, JSON.stringify(next));
+  return next;
 }

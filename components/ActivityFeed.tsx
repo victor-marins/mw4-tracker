@@ -23,7 +23,7 @@ export function ActivityFeed({ state, now }: { state: TrackerState; now: number 
 
   return (
     <div className="max-w-3xl mx-auto">
-      <SectionTitle hint="Tudo que o esquadrão marcou ou desmarcou. Atualiza sozinho.">Atividade</SectionTitle>
+      <SectionTitle hint="Camuflagens desbloqueadas pelo esquadrão. Atualiza sozinho.">Atividade</SectionTitle>
 
       <div className="flex flex-wrap gap-2 mb-6">
         <FilterChip active={filter === null} onClick={() => setFilter(null)}>
@@ -47,17 +47,14 @@ export function ActivityFeed({ state, now }: { state: TrackerState; now: number 
               {group.events.map((event) => (
                 <li
                   key={event.id}
-                  className={`flex items-center justify-between gap-3 bg-[#14171c] border border-slate-800 rounded-lg px-4 py-3 ${
-                    event.action === 'remove' ? 'opacity-60' : ''
-                  }`}
+                  className="flex items-center justify-between gap-3 bg-[#14171c] border border-slate-800 rounded-lg px-4 py-3"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span className={`w-3 h-3 rounded-sm shrink-0 ${CAMO_STYLE[event.camo].swatch}`} />
                     <span className="text-sm text-slate-300 truncate">
-                      <PlayerName players={state.players} player={event.player} />{' '}
-                      {event.action === 'unlock' ? 'desbloqueou' : 'removeu'}{' '}
-                      <span className={`font-bold ${CAMO_STYLE[event.camo].text}`}>{CAMO_LABELS[event.camo]}</span>{' '}
-                      {event.action === 'unlock' ? 'na' : 'da'} <span className="font-bold text-slate-100">{event.weaponName}</span>
+                      <PlayerName players={state.players} player={event.player} /> desbloqueou{' '}
+                      <span className={`font-bold ${CAMO_STYLE[event.camo].text}`}>{CAMO_LABELS[event.camo]}</span> na{' '}
+                      <span className="font-bold text-slate-100">{event.weaponName}</span>
                     </span>
                   </div>
                   <span className="text-xs text-slate-500 shrink-0">{timeAgo(event.ts, Math.max(now, event.ts))}</span>
