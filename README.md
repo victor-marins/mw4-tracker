@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MW4 Tracker
 
-## Getting Started
+Tracker de camuflagens do esquadrão no Modern Warfare 4: Ouro → Platina → Dissonância → Divergência.
 
-First, run the development server:
+- **Ranking, Arsenal e Progresso**, com próximos passos sugeridos.
+- **Atividade**: feed de tudo que foi marcado/desmarcado, com aviso opcional num canal do Discord.
+- **Histórico**: gráfico do score acumulado de cada operador.
+- **1v1**: comparação lado a lado.
+
+Cada um escolhe o próprio nome na entrada (fica salvo no navegador) e só edita o próprio arsenal.
+A tela se atualiza sozinha a cada 15 s.
+
+## Rodar localmente
 
 ```bash
+npm ci
+cp .env.example .env.local   # deixe DEV_SEED=1
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra http://localhost:3000. Sem `REDIS_URL` os dados ficam em memória e somem ao reiniciar o servidor.
+`DEV_SEED=1` gera 30 dias de progresso fictício e é ignorado em produção.
+Para usar um Redis local: `docker run -p 6379:6379 redis` e `REDIS_URL=redis://localhost:6379`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test          # regras, estatísticas e repositório
+npm run lint
+npm run typecheck
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deploy (Vercel)
 
-## Learn More
+| Variável | Obrigatória |
+|---|---|
+| `KV_URL` ou `REDIS_URL` | sim (já existe no projeto) |
+| `DISCORD_WEBHOOK_URL` | não. No canal: Editar canal → Integrações → Webhooks |
 
-To learn more about Next.js, take a look at the following resources:
+## Dados
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Redis, com chaves `mw4:v2:*` (um hash por jogador, então duas pessoas marcando ao mesmo tempo não se sobrescrevem).
+No primeiro acesso o progresso antigo (`mw4_tracker_data`) é copiado para o formato novo. As camuflagens antigas
+ficam como "antes do histórico", porque não se sabe quando foram feitas. A chave antiga não é apagada.
