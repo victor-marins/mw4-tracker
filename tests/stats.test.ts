@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { milestones, discordMessage } from '@/lib/milestones';
-import { DAY_MS, nextSteps, pointsInWindow, scoreHistory } from '@/lib/stats';
+import { DAY_MS, HISTORY_START, nextSteps, pointsInWindow, scoreHistory } from '@/lib/stats';
 import type { Progress, Weapon } from '@/lib/types';
 
 const weapons: Weapon[] = [
@@ -11,18 +11,30 @@ const weapons: Weapon[] = [
 const NOW = Date.UTC(2026, 9, 26, 18);
 
 describe('scoreHistory', () => {
-  it('puts legacy unlocks in the baseline and steps up at each dated unlock', () => {
+  it('starts on 24/10, puts undated unlocks in the baseline and steps up at each dated unlock', () => {
     const progress: Progress = { ana: { a1: { ouro: 0 }, a2: { ouro: NOW - 2 * DAY_MS } } };
     const { start, series } = scoreHistory(progress, ['ana', 'bia'], weapons, NOW);
-    expect(start).toBe(NOW - 2 * DAY_MS);
+    expect(start).toBe(HISTORY_START);
     expect(series.ana).toEqual([
-      { ts: start, score: 2 },
+      { ts: start, score: 1 },
+      { ts: NOW - 2 * DAY_MS, score: 2 },
       { ts: NOW, score: 2 },
     ]);
     expect(series.bia).toEqual([
       { ts: start, score: 0 },
       { ts: NOW, score: 0 },
     ]);
+  });
+
+  it('shows the rise when the only dated unlock is today', () => {
+    const progress: Progress = { ana: { a1: { ouro: HISTORY_START }, s1: { ouro: NOW - 1000 } } };
+    const { series } = scoreHistory(progress, ['ana'], weapons, NOW);
+    expect(series.ana.map((p) => p.score)).toEqual([1, 2, 2]);
+  });
+
+  it('starts earlier when there are unlocks before 24/10', () => {
+    const early = HISTORY_START - 3 * DAY_MS;
+    expect(scoreHistory({ ana: { a1: { ouro: early } } }, ['ana'], weapons, NOW).start).toBe(early);
   });
 });
 

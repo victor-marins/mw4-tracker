@@ -12,6 +12,8 @@ import {
 } from './types';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
+export const HISTORY_START = Date.parse('2026-10-23T00:00:00-03:00');
+export const UNDATED_AT = Date.parse('2026-10-23T12:00:00-03:00');
 const TIME_ZONE = 'America/Sao_Paulo';
 const dayFormat = new Intl.DateTimeFormat('en-CA', {
   timeZone: TIME_ZONE,
@@ -66,7 +68,7 @@ export function scoreHistory(progress: Progress, players: string[], weapons: Wea
     .flat()
     .filter((u) => u.ts > 0)
     .map((u) => u.ts);
-  const start = dated.length ? Math.min(...dated) : now - 7 * DAY_MS;
+  const start = Math.min(HISTORY_START, ...dated);
 
   const series: Record<string, ScorePoint[]> = {};
   for (const player of players) {

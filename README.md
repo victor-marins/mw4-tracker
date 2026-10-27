@@ -19,13 +19,17 @@ Como não há senha, a restrição vale para a tela: quem entrar como Marins con
 
 ```bash
 npm ci
-cp .env.example .env.local   # deixe DEV_SEED=1
+cp .env.example .env.local   # DEV_SEED=prod
 npm run dev
 ```
 
 Abra http://localhost:3000. Sem `REDIS_URL` os dados ficam em memória e somem ao reiniciar o servidor.
-`DEV_SEED=1` gera 30 dias de progresso fictício e é ignorado em produção.
-Para usar um Redis local: `docker run -p 6379:6379 redis` e `REDIS_URL=redis://localhost:6379`.
+Com `DEV_SEED=prod` o servidor copia o estado de produção pela API pública ao iniciar; o que você marcar
+local fica só local. `DEV_SEED=fake` gera 30 dias de progresso fictício. Os dois são ignorados em produção
+e quando há `REDIS_URL`.
+
+Em rede corporativa com inspeção de TLS, se aparecer `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`, rode o dev com
+`NODE_OPTIONS=--use-system-ca` para o Node confiar nos certificados do Windows.
 
 ```bash
 npm test          # regras, estatísticas e repositório

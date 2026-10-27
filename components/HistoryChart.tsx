@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { DAY_MS, pointsInWindow, scoreHistory, type ScorePoint } from '@/lib/stats';
+import { DAY_MS, dayKey, pointsInWindow, scoreHistory, type ScorePoint } from '@/lib/stats';
 import type { TrackerState } from '@/lib/types';
 import { formatDate, formatDateTime, playerColor, SectionTitle } from './ui';
 
@@ -12,6 +12,7 @@ const RANGES = [
 
 const HEIGHT = 320;
 const MARGIN = { top: 16, right: 16, bottom: 28, left: 40 };
+const LANE_PX = 3;
 
 function valueAt(points: ScorePoint[], ts: number): number {
   let value = points[0]?.score ?? 0;
@@ -20,6 +21,15 @@ function valueAt(points: ScorePoint[], ts: number): number {
     value = p.score;
   }
   return value;
+}
+
+function dayTicks(from: number, to: number, maxTicks: number): number[] {
+  const firstMidnight = Date.parse(`${dayKey(from)}T00:00:00-03:00`);
+  const start = firstMidnight < from ? firstMidnight + DAY_MS : firstMidnight;
+  const stepDays = Math.max(1, Math.ceil((to - start) / DAY_MS / maxTicks));
+  const ticks: number[] = [];
+  for (let ts = start; ts <= to; ts += stepDays * DAY_MS) ticks.push(ts);
+  return ticks.length ? ticks : [from];
 }
 
 function niceStep(raw: number): number {
@@ -49,7 +59,7 @@ export function HistoryChart({ state, now }: { state: TrackerState; now: number 
   );
   const rangeMs = RANGES.find((r) => r.id === range)!.ms;
   const from = Number.isFinite(rangeMs) ? Math.max(history.start, now - rangeMs) : history.start;
-  const to = Math.max(now, from + 1);
+  const to = Math.max(now, from + 1) + Math.max(3 * 3_600_000, (Math.max(now, from + 1) - from) * 0.05);
 
   const maxScore = Math.max(1, ...state.players.map((p) => valueAt(history.series[p], to)));
   const step = niceStep(maxScore / 4);
@@ -60,17 +70,38 @@ export function HistoryChart({ state, now }: { state: TrackerState; now: number 
   const innerH = HEIGHT - MARGIN.top - MARGIN.bottom;
   const x = (ts: number) => MARGIN.left + ((ts - from) / (to - from)) * innerW;
   const y = (score: number) => MARGIN.top + innerH - (score / yMax) * innerH;
-  const xTickCount = Math.max(2, Math.min(7, Math.floor(innerW / 110)));
-  const xTicks = Array.from({ length: xTickCount }, (_, i) => from + ((to - from) * i) / (xTickCount - 1));
+  const xTicks = dayTicks(from, to, Math.max(2, Math.min(8, Math.floor(innerW / 90))));
 
-  const pathFor = (points: ScorePoint[]) => {
-    let d = `M${x(from)},${y(valueAt(points, from))}`;
-    for (const p of points) {
-      if (p.ts <= from || p.ts > to) continue;
-      d += `H${x(p.ts)}V${y(p.score)}`;
+  const offsetsAt = (ts: number): Record<string, number> => {
+    const groups = new Map<number, string[]>();
+    for (const player of state.players) {
+      const value = valueAt(history.series[player], ts);
+      groups.set(value, [...(groups.get(value) ?? []), player]);
     }
+    const offsets: Record<string, number> = {};
+    for (const members of groups.values()) {
+      members.forEach((player, k) => (offsets[player] = (k - (members.length - 1) / 2) * LANE_PX));
+    }
+    return offsets;
+  };
+
+  const breakpoints = [
+    from,
+    ...[...new Set(Object.values(history.series).flatMap((points) => points.map((p) => p.ts)))]
+      .filter((ts) => ts > from && ts <= to)
+      .sort((a, b) => a - b),
+  ];
+  const breakpointOffsets = breakpoints.map(offsetsAt);
+
+  const pathFor = (player: string) => {
+    const points = history.series[player];
+    let d = `M${x(from)},${y(valueAt(points, from)) + breakpointOffsets[0][player]}`;
+    breakpoints.slice(1).forEach((ts, i) => {
+      d += `H${x(ts)}V${y(valueAt(points, ts)) + breakpointOffsets[i + 1][player]}`;
+    });
     return `${d}H${x(to)}`;
   };
+  const hoverOffsets = hoverTs === null ? null : offsetsAt(hoverTs);
 
   const onPointer = (e: React.PointerEvent<SVGRectElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -152,21 +183,23 @@ export function HistoryChart({ state, now }: { state: TrackerState; now: number 
                 </text>
               </g>
             ))}
-            {xTicks.map((tick, i) => (
-              <text
-                key={tick}
-                x={x(tick)}
-                y={HEIGHT - 8}
-                textAnchor={i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle'}
-                className="fill-slate-500 text-[11px]"
-              >
-                {formatDate(tick)}
-              </text>
+            {xTicks.map((tick) => (
+              <g key={tick}>
+                <line x1={x(tick)} x2={x(tick)} y1={MARGIN.top + innerH} y2={MARGIN.top + innerH + 4} stroke="#334155" />
+                <text
+                  x={x(tick)}
+                  y={HEIGHT - 8}
+                  textAnchor={x(tick) - MARGIN.left < 20 ? 'start' : width - MARGIN.right - x(tick) < 20 ? 'end' : 'middle'}
+                  className="fill-slate-500 text-[11px]"
+                >
+                  {formatDate(tick)}
+                </text>
+              </g>
             ))}
             {state.players.map((player) => (
               <path
                 key={player}
-                d={pathFor(history.series[player])}
+                d={pathFor(player)}
                 fill="none"
                 stroke={playerColor(state.players, player)}
                 strokeWidth={2}
@@ -181,7 +214,7 @@ export function HistoryChart({ state, now }: { state: TrackerState; now: number 
                   <circle
                     key={player}
                     cx={x(hoverTs)}
-                    cy={y(valueAt(history.series[player], hoverTs))}
+                    cy={y(valueAt(history.series[player], hoverTs)) + (hoverOffsets?.[player] ?? 0)}
                     r={4}
                     fill={playerColor(state.players, player)}
                     stroke="#14171c"

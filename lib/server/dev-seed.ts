@@ -1,6 +1,6 @@
 import { applyCamo, hasCamo, lockReason } from '../rules';
 import { DAY_MS } from '../stats';
-import { CAMOS, type FeedEvent, type PlayerProgress } from '../types';
+import { CAMOS, type FeedEvent, type PlayerProgress, type TrackerState } from '../types';
 import { DEFAULT_WEAPONS } from '../weapons';
 import { KEYS, appendFeed } from './repo';
 import type { Store } from './store';
@@ -15,6 +15,26 @@ function random(seed: number) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+export async function seedFromProduction(store: Store, baseUrl: string) {
+  const response = await fetch(new URL('/api/state', baseUrl), { cache: 'no-store' });
+  if (!response.ok) throw new Error(`${baseUrl}/api/state respondeu ${response.status}`);
+  const state = (await response.json()) as TrackerState;
+
+  await store.set(KEYS.players, JSON.stringify(state.players));
+  await store.hSet(
+    KEYS.customWeapons,
+    Object.fromEntries(state.weapons.filter((w) => w.isCustom).map((w) => [w.id, JSON.stringify(w)])),
+  );
+  for (const [player, progress] of Object.entries(state.progress)) {
+    await store.hSet(
+      KEYS.progress(player),
+      Object.fromEntries(Object.entries(progress).map(([id, wp]) => [id, JSON.stringify(wp)])),
+    );
+  }
+  await appendFeed(store, [...state.feed].reverse());
+  console.warn(`[dev] dados copiados de ${baseUrl}; alterações locais não vão para produção`);
 }
 
 export async function seedDevData(store: Store, players: string[], now = Date.now()) {

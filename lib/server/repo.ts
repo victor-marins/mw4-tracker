@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { applyCamo, type CamoChange } from '../rules';
+import { HISTORY_START, UNDATED_AT } from '../stats';
 import {
   CAMOS,
   type Camo,
@@ -20,6 +21,7 @@ export const KEYS = {
   feed: `${PREFIX}feed`,
   migrated: `${PREFIX}migrated`,
   players: `${PREFIX}players`,
+  backfilled: `${PREFIX}backfilled`,
 };
 export const LEGACY_KEY = 'mw4_tracker_data';
 const FEED_LIMIT = 200;
@@ -68,12 +70,71 @@ export async function migrateLegacy(store: Store, now = Date.now()): Promise<boo
   return true;
 }
 
-async function ensureReady(store: Store, players: string[]) {
-  await migrateLegacy(store);
-  if (process.env.NODE_ENV !== 'production' && process.env.DEV_SEED === '1') {
-    const { seedDevData } = await import('./dev-seed');
-    await seedDevData(store, players);
+export const KNOWN_UNLOCK_DATES: Array<{ player: string; weaponId: string; camo: Camo; ts: number }> = [
+  { player: 'Marins', weaponId: 'ar2', camo: 'ouro', ts: Date.parse('2026-10-24T21:00:00-03:00') },
+  { player: 'Pagno', weaponId: 'smg2', camo: 'ouro', ts: Date.parse('2026-10-25T21:00:00-03:00') },
+];
+
+export async function backfillUndated(store: Store, players: string[]): Promise<boolean> {
+  if (await store.get(KEYS.backfilled)) return false;
+  const weapons = await getWeapons(store);
+  const events: FeedEvent[] = [];
+  for (const player of players) {
+    const progress = parseHash<WeaponProgress>(await store.hGetAll(KEYS.progress(player)));
+    const updates: Record<string, string> = {};
+    for (const [weaponId, wp] of Object.entries(progress)) {
+      let changed = false;
+      for (const camo of CAMOS) {
+        if (wp[camo] !== 0) continue;
+        const known = KNOWN_UNLOCK_DATES.find((k) => k.player === player && k.weaponId === weaponId && k.camo === camo);
+        wp[camo] = known?.ts ?? UNDATED_AT;
+        changed = true;
+        if (known) {
+          events.push({
+            id: randomUUID(),
+            ts: known.ts,
+            player,
+            weaponId,
+            weaponName: weapons.find((w) => w.id === weaponId)?.name ?? weaponId,
+            camo,
+            action: 'unlock',
+          });
+        }
+      }
+      if (changed) updates[weaponId] = JSON.stringify(wp);
+    }
+    await store.hSet(KEYS.progress(player), updates);
   }
+  await appendFeed(store, events);
+  await store.set(KEYS.backfilled, String(HISTORY_START));
+  return true;
+}
+
+const devSeeding = new WeakMap<Store, Promise<void>>();
+
+function seedDev(store: Store, players: string[]): Promise<void> {
+  const mode = process.env.DEV_SEED;
+  if (process.env.NODE_ENV === 'production' || store.kind !== 'memory' || !mode) return Promise.resolve();
+  let seeding = devSeeding.get(store);
+  if (!seeding) {
+    seeding = import('./dev-seed').then((dev) =>
+      mode === 'prod'
+        ? dev.seedFromProduction(store, process.env.DEV_PROD_URL || 'https://mw4-tracker.vercel.app')
+        : dev.seedDevData(store, players),
+    );
+    seeding.catch((error) => {
+      devSeeding.delete(store);
+      console.warn('[dev] não foi possível carregar os dados de desenvolvimento', error);
+    });
+    devSeeding.set(store, seeding);
+  }
+  return seeding.catch(() => undefined);
+}
+
+async function ensureReady(store: Store) {
+  await seedDev(store, await getPlayers(store));
+  await migrateLegacy(store);
+  await backfillUndated(store, await getPlayers(store));
 }
 
 export async function getWeapons(store: Store = getStore()): Promise<Weapon[]> {
@@ -89,8 +150,8 @@ export async function getPlayers(store: Store = getStore()): Promise<string[]> {
 }
 
 export async function getState(store: Store = getStore()): Promise<TrackerState> {
+  await ensureReady(store);
   const players = await getPlayers(store);
-  await ensureReady(store, players);
   const [weapons, feedRaw, progressHashes] = await Promise.all([
     getWeapons(store),
     store.lRange(KEYS.feed, 0, FEED_LIMIT - 1),
@@ -106,7 +167,8 @@ export async function getState(store: Store = getStore()): Promise<TrackerState>
     progress,
     feed: feedRaw
       .map((raw) => parse<FeedEvent>(raw))
-      .filter((e): e is FeedEvent => e !== null && isStillUnlocked(e, progress)),
+      .filter((e): e is FeedEvent => e !== null && isStillUnlocked(e, progress))
+      .sort((a, b) => b.ts - a.ts),
   };
 }
 

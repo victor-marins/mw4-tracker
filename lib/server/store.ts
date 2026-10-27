@@ -1,6 +1,7 @@
 import { createClient } from 'redis';
 
 export interface Store {
+  readonly kind: 'redis' | 'memory';
   hGetAll(key: string): Promise<Record<string, string>>;
   hSet(key: string, values: Record<string, string>): Promise<void>;
   hSetNx(key: string, field: string, value: string): Promise<void>;
@@ -49,6 +50,7 @@ function redisStore(url: string): Store {
   };
 
   return {
+    kind: 'redis',
     async hGetAll(key) {
       return (await (await client()).hGetAll(key)) as Record<string, string>;
     },
@@ -95,6 +97,7 @@ export function memoryStore(): Store {
     items.slice(start, stop < 0 ? items.length + stop + 1 : stop + 1);
 
   return {
+    kind: 'memory',
     async hGetAll(key) {
       return Object.fromEntries(hash(key));
     },

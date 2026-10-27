@@ -1,8 +1,11 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RuleError } from '@/lib/rules';
+import { HISTORY_START, UNDATED_AT } from '@/lib/stats';
 import {
   addPlayer,
   addWeapon,
+  backfillUndated,
+  KNOWN_UNLOCK_DATES,
   deleteWeapon,
   getPlayers,
   getState,
@@ -96,6 +99,79 @@ describe('repository', () => {
     expect(state.weapons.some((w) => w.id === weapon.id)).toBe(false);
     expect(state.progress.Pagno).toEqual({});
     await expect(deleteWeapon('ar1', store)).rejects.toThrow('Só armas adicionadas');
+  });
+});
+
+describe('backfill of undated unlocks', () => {
+  let store: Store;
+  beforeEach(() => {
+    store = memoryStore();
+  });
+
+  it('dates M4 (Marins) on 24/10, VEL 46 (Pagno) on 25/10 and the rest at the start, once', async () => {
+    const today = HISTORY_START + 3 * 86_400_000;
+    await store.hSet(KEYS.progress('Marins'), {
+      ar2: JSON.stringify({ ouro: 0 }),
+      smg2: JSON.stringify({ ouro: today }),
+    });
+    await store.hSet(KEYS.progress('Pagno'), {
+      smg2: JSON.stringify({ ouro: 0 }),
+      ar2: JSON.stringify({ ouro: 0 }),
+    });
+
+    expect(await backfillUndated(store, ['Marins', 'Pagno'])).toBe(true);
+    expect(await backfillUndated(store, ['Marins', 'Pagno'])).toBe(false);
+
+    const state = await getState(store);
+    const known = Object.fromEntries(KNOWN_UNLOCK_DATES.map((k) => [k.player, k.ts]));
+    expect(state.progress.Marins).toEqual({ ar2: { ouro: known.Marins }, smg2: { ouro: today } });
+    expect(state.progress.Pagno).toEqual({ smg2: { ouro: known.Pagno }, ar2: { ouro: UNDATED_AT } });
+    expect(new Date(known.Marins).toISOString()).toBe('2026-10-25T00:00:00.000Z');
+    expect(new Date(known.Pagno).toISOString()).toBe('2026-10-26T00:00:00.000Z');
+    expect(state.feed.map((e) => `${e.player}:${e.weaponName}`)).toEqual(['Pagno:VEL 46', 'Marins:M4']);
+  });
+});
+
+describe('dev data', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  const production = {
+    players: ['Marins', 'Pagno', 'Novato'],
+    weapons: [{ id: 'custom_9', name: 'NOVA', category: 'SMTs', isCustom: true }],
+    progress: { Marins: { ar2: { ouro: 0 } }, Pagno: { smg2: { ouro: 0 } }, Novato: { ar1: { ouro: 50 } } },
+    feed: [{ id: 'e1', ts: 50, player: 'Novato', weaponId: 'ar1', weaponName: 'HYEON BURST', camo: 'ouro', action: 'unlock' }],
+  };
+
+  it('copies production through the public API, then applies the backfill locally', async () => {
+    vi.stubEnv('DEV_SEED', 'prod');
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(production), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const store = memoryStore();
+
+    const state = await getState(store);
+    await getState(store);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(state.players).toEqual(['Marins', 'Pagno', 'Novato']);
+    expect(state.weapons.some((w) => w.id === 'custom_9')).toBe(true);
+    expect(state.progress.Novato).toEqual({ ar1: { ouro: 50 } });
+    expect(state.progress.Pagno.smg2.ouro).toBe(KNOWN_UNLOCK_DATES.find((k) => k.player === 'Pagno')!.ts);
+    expect(state.feed.map((e) => e.player)).toEqual(['Pagno', 'Marins', 'Novato']);
+  });
+
+  it('never seeds a real Redis', async () => {
+    vi.stubEnv('DEV_SEED', 'prod');
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const redisLike: Store = { ...memoryStore(), kind: 'redis' };
+
+    await getState(redisLike);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(await getPlayers(redisLike)).toEqual(DEFAULT_PLAYERS);
   });
 });
 
