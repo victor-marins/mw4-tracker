@@ -2,7 +2,14 @@
 import { useEffect, useState } from 'react';
 import { applyCamo, categoryTarget, countInCategory, lockReason, RuleError, type CamoChange } from '@/lib/rules';
 import { highestCamo } from '@/lib/stats';
-import { CAMOS, CAMO_LABELS, type Camo, type PlayerProgress, type Weapon } from '@/lib/types';
+import {
+  CAMOS,
+  CAMO_LABELS,
+  CAMO_SHORT_LABELS,
+  PRESTIGE_CAMOS,
+  PRESTIGE_CONDITIONS,
+  isPrestigeCamo,
+  type Camo, type PlayerProgress, type Weapon } from '@/lib/types';
 import { CATEGORIES } from '@/lib/weapons';
 import {
   buttonPrimary,
@@ -70,6 +77,37 @@ export function Arsenal({ tracker, me, viewed, now }: { tracker: Tracker; me: st
     if (!pending) return;
     tracker.setProgress(me, pending.weapon.id, pending.camo, pending.value, pending.next);
     setPending(null);
+  };
+
+  const renderCamo = (weapon: Weapon, camo: Camo) => {
+    const done = pp[weapon.id]?.[camo] !== undefined;
+    const reason = done ? null : lockReason(pp, state.weapons, weapon, camo);
+    const style = CAMO_STYLE[camo];
+    const prestige = isPrestigeCamo(camo);
+    const title = done
+      ? `Desbloqueada ${timeAgo(pp[weapon.id]![camo]!, now)}`
+      : prestige
+        ? `${CAMO_LABELS[camo]}: ${PRESTIGE_CONDITIONS[camo]}`
+        : undefined;
+    return (
+      <button
+        key={camo}
+        onClick={() => toggle(weapon, camo)}
+        disabled={!canEdit || reason !== null}
+        title={title}
+        className={`p-2 rounded border text-xs font-bold h-12 flex items-center justify-center text-center transition-all ${
+          done
+            ? `${style.bg} ${style.border} ${style.text}`
+            : reason
+              ? 'bg-slate-900 border-slate-800 text-slate-600'
+              : 'bg-slate-800 border-slate-600 text-slate-400'
+        } ${canEdit && !reason ? 'cursor-pointer hover:brightness-110' : 'cursor-not-allowed'} ${
+          !canEdit && !done ? 'opacity-50' : ''
+        }`}
+      >
+        {reason ? <span className="text-[10px]">{reason}</span> : CAMO_SHORT_LABELS[camo].toUpperCase()}
+      </button>
+    );
   };
 
   const confirmDelete = () => {
@@ -148,33 +186,17 @@ export function Arsenal({ tracker, me, viewed, now }: { tracker: Tracker; me: st
               </div>
 
               <div className="p-3 grid grid-cols-2 xl:grid-cols-4 gap-2">
-                {CAMOS.map((camo) => {
-                  const done = pp[weapon.id]?.[camo] !== undefined;
-                  const reason = done ? null : lockReason(pp, state.weapons, weapon, camo);
-                  const style = CAMO_STYLE[camo];
-                  return (
-                    <button
-                      key={camo}
-                      onClick={() => toggle(weapon, camo)}
-                      disabled={!canEdit || reason !== null}
-                      title={done ? `Desbloqueada ${timeAgo(pp[weapon.id]![camo]!, now)}` : undefined}
-                      className={`p-2 rounded border text-xs font-bold h-12 flex items-center justify-center transition-all ${
-                        done
-                          ? `${style.bg} ${style.border} ${style.text}`
-                          : reason
-                            ? 'bg-slate-900 border-slate-800 text-slate-600'
-                            : 'bg-slate-800 border-slate-600 text-slate-400'
-                      } ${canEdit && !reason ? 'cursor-pointer hover:brightness-110' : 'cursor-not-allowed'} ${
-                        !canEdit && !done ? 'opacity-50' : ''
-                      }`}
-                    >
-                      {reason ? <span className="text-[10px]">{reason}</span> : CAMO_LABELS[camo].toUpperCase()}
-                    </button>
-                  );
-                })}
+                {CAMOS.map((camo) => renderCamo(weapon, camo))}
               </div>
 
-              <SquadStrip players={state.players} weapon={weapon} progress={state.progress} />
+              <div className="px-3 pb-3">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Prestígio</div>
+                <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+                  {PRESTIGE_CAMOS.map((camo) => renderCamo(weapon, camo))}
+                </div>
+              </div>
+
+              <SquadStrip players={state.players.filter((p) => p !== viewed)} weapon={weapon} progress={state.progress} />
             </div>
           ))}
       </div>
@@ -194,6 +216,9 @@ export function Arsenal({ tracker, me, viewed, now }: { tracker: Tracker; me: st
             <span className={`font-bold ${CAMO_STYLE[pending.camo].text}`}>{CAMO_LABELS[pending.camo]}</span>{' '}
             {pending.value ? 'na' : 'da'} <span className="font-bold text-slate-100">{pending.weapon.name}</span>?
           </p>
+          {pending.value && isPrestigeCamo(pending.camo) && (
+            <p className="text-sm text-slate-400">{PRESTIGE_CONDITIONS[pending.camo]}</p>
+          )}
           {pending.cascade.length > 0 && (
             <div className="bg-red-950/40 border border-red-900/60 rounded-lg p-3 text-sm">
               <p className="text-red-200 font-bold mb-2">Também será removido:</p>
@@ -238,17 +263,25 @@ function SquadStrip({
   progress: Record<string, Record<string, Partial<Record<Camo, number>>>>;
 }) {
   return (
-    <div className="px-3 pb-3 flex flex-wrap gap-x-3 gap-y-1">
+    <div className="px-3 pb-3 flex flex-wrap items-start gap-x-3 gap-y-2">
       {players.map((player) => {
-        const top = highestCamo(progress[player]?.[weapon.id]);
+        const wp = progress[player]?.[weapon.id];
+        const top = highestCamo(wp);
+        const held = PRESTIGE_CAMOS.filter((c) => wp?.[c] !== undefined);
+        const detail = [top ? CAMO_LABELS[top] : 'sem camuflagem', ...held.map((c) => CAMO_LABELS[c])].join(' · ');
         return (
-          <span
-            key={player}
-            className="flex items-center gap-1 text-[10px] text-slate-500"
-            title={`${player}: ${top ? CAMO_LABELS[top] : 'sem camuflagem'}`}
-          >
-            <span className={`w-2 h-2 rounded-sm ${top ? CAMO_STYLE[top].swatch : 'bg-slate-700'}`} />
-            {player}
+          <span key={player} className="flex flex-col items-center gap-1 text-[10px] text-slate-500" title={`${player}: ${detail}`}>
+            <span className="flex items-center gap-1">
+              <span className={`w-2 h-2 rounded-sm ${top ? CAMO_STYLE[top].swatch : 'bg-slate-700'}`} />
+              {player}
+            </span>
+            {held.length > 0 && (
+              <span className="flex items-center gap-0.5" aria-label={`Prestígio: ${held.length} de 4`}>
+                {PRESTIGE_CAMOS.map((c) => (
+                  <span key={c} className={`w-3 h-1 rounded-full ${held.includes(c) ? CAMO_STYLE[c].swatch : 'bg-slate-700'}`} />
+                ))}
+              </span>
+            )}
           </span>
         );
       })}

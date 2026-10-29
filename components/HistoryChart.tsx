@@ -128,7 +128,7 @@ export function HistoryChart({ state, now }: { state: TrackerState; now: number 
 
   return (
     <div>
-      <SectionTitle hint="Score acumulado (Ouro 1 · Platina 2 · Dissonância 3 · Divergência 4)">Histórico</SectionTitle>
+      <SectionTitle hint="Score acumulado (camos padrão 1·2·3·4 e prestígio 1·2·3·4)">Histórico</SectionTitle>
 
       <div className="flex flex-wrap items-center gap-2 mb-4">
         {RANGES.map((r) => (

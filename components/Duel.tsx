@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react';
 import { camoTotals, categoryTarget, countInCategory } from '@/lib/rules';
 import { highestCamo } from '@/lib/stats';
-import { CAMOS, CAMO_LABELS, type Camo, type TrackerState, type Weapon } from '@/lib/types';
+import { ALL_CAMOS, CAMOS, CAMO_LABELS, type StandardCamo, type TrackerState, type Weapon } from '@/lib/types';
 import { CATEGORIES } from '@/lib/weapons';
 import { CAMO_STYLE, inputClass, playerColor, SectionTitle } from './ui';
 
-const rank = (camo: Camo | null) => (camo ? CAMOS.indexOf(camo) + 1 : 0);
+const rank = (camo: StandardCamo | null) => (camo ? CAMOS.indexOf(camo) + 1 : 0);
 const DUEL_KEY = 'mw4_duel';
 
 export function Duel({ state, me }: { state: TrackerState; me: string }) {
@@ -54,7 +54,7 @@ export function Duel({ state, me }: { state: TrackerState; me: string }) {
 
   const rows: Array<{ label: string; a: number; b: number; max?: number }> = [
     { label: 'Score', a: totalsA.score, b: totalsB.score },
-    ...CAMOS.map((camo) => ({ label: CAMO_LABELS[camo], a: totalsA[camo], b: totalsB[camo], max: state.weapons.length })),
+    ...ALL_CAMOS.map((camo) => ({ label: CAMO_LABELS[camo], a: totalsA[camo], b: totalsB[camo], max: state.weapons.length })),
     ...CATEGORIES.map((cat) => ({
       label: `Ouros · ${cat}`,
       a: countInCategory(ppA, state.weapons, cat, 'ouro'),

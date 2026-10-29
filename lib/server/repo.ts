@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { applyCamo, type CamoChange } from '../rules';
 import { HISTORY_START, UNDATED_AT } from '../stats';
 import {
+  ALL_CAMOS,
   CAMOS,
   type Camo,
   type FeedEvent,
@@ -84,7 +85,7 @@ export async function backfillUndated(store: Store, players: string[]): Promise<
     const updates: Record<string, string> = {};
     for (const [weaponId, wp] of Object.entries(progress)) {
       let changed = false;
-      for (const camo of CAMOS) {
+      for (const camo of ALL_CAMOS) {
         if (wp[camo] !== 0) continue;
         const known = KNOWN_UNLOCK_DATES.find((k) => k.player === player && k.weaponId === weaponId && k.camo === camo);
         wp[camo] = known?.ts ?? UNDATED_AT;

@@ -1,10 +1,12 @@
 import { CATEGORIES } from './weapons';
 import { countCamo, hasCamo, lockReason } from './rules';
 import {
+  ALL_CAMOS,
   CAMOS,
   CAMO_LABELS,
   CAMO_POINTS,
   type Camo,
+  type StandardCamo,
   type PlayerProgress,
   type Progress,
   type Weapon,
@@ -35,7 +37,7 @@ export interface Unlock {
 export function unlocksOf(pp: PlayerProgress, weapons: Weapon[]): Unlock[] {
   const list: Unlock[] = [];
   for (const w of weapons) {
-    for (const camo of CAMOS) {
+    for (const camo of ALL_CAMOS) {
       const ts = pp[w.id]?.[camo];
       if (ts !== undefined) list.push({ weaponId: w.id, camo, ts });
     }
@@ -43,7 +45,7 @@ export function unlocksOf(pp: PlayerProgress, weapons: Weapon[]): Unlock[] {
   return list.sort((a, b) => a.ts - b.ts);
 }
 
-export function highestCamo(wp: WeaponProgress | undefined): Camo | null {
+export function highestCamo(wp: WeaponProgress | undefined): StandardCamo | null {
   if (!wp) return null;
   for (let i = CAMOS.length - 1; i >= 0; i--) {
     if (wp[CAMOS[i]] !== undefined) return CAMOS[i];

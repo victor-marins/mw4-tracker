@@ -4,9 +4,9 @@ import type { TrackerState } from '@/lib/types';
 import { playerColor } from './ui';
 
 const PODIUM_STYLES: Record<number, string> = {
-  1: 'border-yellow-500 bg-yellow-500/10 text-yellow-400 h-64 md:h-72 shadow-[0_0_20px_rgba(234,179,8,0.2)] md:-translate-y-4',
-  2: 'border-slate-300 bg-slate-300/10 text-slate-300 h-52 md:h-60',
-  3: 'border-orange-700 bg-orange-700/10 text-orange-600 h-44 md:h-52',
+  1: 'border-yellow-500 bg-yellow-500/10 text-yellow-400 h-72 md:h-80 shadow-[0_0_20px_rgba(234,179,8,0.2)] md:-translate-y-4',
+  2: 'border-slate-300 bg-slate-300/10 text-slate-300 h-60 md:h-72',
+  3: 'border-orange-700 bg-orange-700/10 text-orange-600 h-56 md:h-64',
 };
 
 function CamoCounts({ totals, className }: { totals: ReturnType<typeof camoTotals>; className: string }) {
@@ -16,6 +16,12 @@ function CamoCounts({ totals, className }: { totals: ReturnType<typeof camoTotal
       <div className="text-slate-300 text-center" title="Platinas">P: {totals.platina}</div>
       <div className="text-cyan-400 text-center" title="Dissonâncias">D: {totals.dissonancia}</div>
       <div className="text-purple-400 text-center" title="Divergências">V: {totals.divergencia}</div>
+      <div
+        className="text-orange-400 text-center col-span-2 md:col-span-1"
+        title={`Prestígio: Piroclasto ${totals.piroclasto} · Terminus ${totals.terminus} · Dispersão ${totals.dispersao} · Cascata ${totals.cascata}`}
+      >
+        🔥 {totals.piroclasto + totals.terminus + totals.dispersao + totals.cascata}
+      </div>
     </div>
   );
 }
@@ -34,7 +40,7 @@ export function Ranking({ state }: { state: TrackerState }) {
     <div className="space-y-8 pb-12 mt-2">
       <div className="text-center mb-10">
         <h2 className="text-3xl font-bold tracking-wider text-slate-100 uppercase">Classificação Geral</h2>
-        <p className="text-slate-400 mt-2 text-sm">Ouro 1 pt · Platina 2 · Dissonância 3 · Divergência 4</p>
+        <p className="text-slate-400 mt-2 text-sm">Ouro 1 pt · Platina 2 · Dissonância 3 · Divergência 4 · Prestígio: Piroclasto 1 · Terminus 2 · Dispersão 3 · Cascata 4</p>
       </div>
 
       <div className="flex flex-row justify-center items-end gap-2 md:gap-6 mt-12 mb-8 px-2">

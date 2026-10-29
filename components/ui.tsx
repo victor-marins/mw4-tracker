@@ -15,6 +15,10 @@ export const CAMO_STYLE: Record<Camo, { text: string; border: string; bg: string
   platina: { text: 'text-slate-300', border: 'border-slate-300', bg: 'bg-slate-300/10', swatch: 'bg-slate-300' },
   dissonancia: { text: 'text-cyan-400', border: 'border-cyan-500', bg: 'bg-cyan-500/10', swatch: 'bg-cyan-400' },
   divergencia: { text: 'text-purple-400', border: 'border-purple-500', bg: 'bg-purple-600/10', swatch: 'bg-purple-500' },
+  piroclasto: { text: 'text-orange-400', border: 'border-orange-500', bg: 'bg-orange-500/10', swatch: 'bg-orange-500' },
+  terminus: { text: 'text-red-400', border: 'border-red-500', bg: 'bg-red-500/10', swatch: 'bg-red-500' },
+  dispersao: { text: 'text-pink-400', border: 'border-pink-400', bg: 'bg-pink-400/10', swatch: 'bg-pink-400' },
+  cascata: { text: 'text-fuchsia-400', border: 'border-fuchsia-500', bg: 'bg-fuchsia-500/10', swatch: 'bg-fuchsia-500' },
 };
 
 export function useNow(intervalMs = 30_000): number {

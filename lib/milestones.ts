@@ -6,6 +6,10 @@ const CAMO_EMOJI: Record<Camo, string> = {
   platina: '⚪',
   dissonancia: '🔷',
   divergencia: '🟣',
+  piroclasto: '🔥',
+  terminus: '🌋',
+  dispersao: '💥',
+  cascata: '☄️',
 };
 
 export function milestones(before: PlayerProgress, after: PlayerProgress, weapons: Weapon[]): string[] {

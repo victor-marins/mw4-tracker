@@ -1,4 +1,4 @@
-import { CAMOS, CAMO_LABELS, CAMO_POINTS, type Camo, type PlayerProgress, type Weapon } from './types';
+import { ALL_CAMOS, CAMOS, CAMO_LABELS, CAMO_POINTS, PRESTIGE_CAMOS, isPrestigeCamo, type Camo, type PlayerProgress, type Weapon } from './types';
 
 export interface CamoChange {
   weaponId: string;
@@ -45,7 +45,20 @@ export function lockReason(pp: PlayerProgress, weapons: Weapon[], weapon: Weapon
       const missing = weapons.length - countCamo(pp, weapons, 'dissonancia');
       return missing > 0 ? `FALTAM ${missing}` : null;
     }
+    case 'piroclasto':
+      return null;
+    case 'terminus':
+      return hasCamo(pp, weapon.id, 'piroclasto') ? null : 'REQUER PIROCLASTO';
+    case 'dispersao':
+      return hasCamo(pp, weapon.id, 'terminus') ? null : 'REQUER TERMINUS';
+    case 'cascata':
+      return hasCamo(pp, weapon.id, 'dispersao') ? null : 'REQUER DISPERSÃO';
   }
+}
+
+function dependents(camo: Camo): readonly Camo[] {
+  if (isPrestigeCamo(camo)) return PRESTIGE_CAMOS.slice(PRESTIGE_CAMOS.indexOf(camo));
+  return CAMOS.slice(CAMOS.indexOf(camo));
 }
 
 export function applyCamo(
@@ -76,7 +89,7 @@ export function applyCamo(
   const removeFrom = (id: string, from: Camo) => {
     const wp = next[id];
     if (!wp) return;
-    for (const c of CAMOS.slice(CAMOS.indexOf(from))) {
+    for (const c of dependents(from)) {
       if (wp[c] !== undefined) {
         delete wp[c];
         changes.push({ weaponId: id, camo: c, action: 'remove' });
@@ -108,9 +121,9 @@ export function applyCamo(
 }
 
 export function camoTotals(pp: PlayerProgress, weapons: Weapon[]): CamoTotals {
-  const totals = { ouro: 0, platina: 0, dissonancia: 0, divergencia: 0, score: 0 };
+  const totals = Object.fromEntries([...ALL_CAMOS.map((c) => [c, 0]), ['score', 0]]) as CamoTotals;
   for (const w of weapons) {
-    for (const c of CAMOS) {
+    for (const c of ALL_CAMOS) {
       if (hasCamo(pp, w.id, c)) {
         totals[c]++;
         totals.score += CAMO_POINTS[c];

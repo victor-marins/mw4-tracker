@@ -77,9 +77,48 @@ describe('applyCamo', () => {
   });
 });
 
+describe('prestige camos', () => {
+  it('each step requires the previous one', () => {
+    expect(lockReason({}, weapons, weapons[0], 'piroclasto')).toBeNull();
+    expect(lockReason({}, weapons, weapons[0], 'terminus')).toBe('REQUER PIROCLASTO');
+    expect(lockReason({ a1: { piroclasto: 1 } }, weapons, weapons[0], 'terminus')).toBeNull();
+    expect(lockReason({ a1: { piroclasto: 1 } }, weapons, weapons[0], 'dispersao')).toBe('REQUER TERMINUS');
+    expect(lockReason({ a1: { piroclasto: 1, terminus: 1 } }, weapons, weapons[0], 'dispersao')).toBeNull();
+    expect(lockReason({ a1: { piroclasto: 1, terminus: 1 } }, weapons, weapons[0], 'cascata')).toBe('REQUER DISPERSÃO');
+    expect(lockReason({ a1: { piroclasto: 1, terminus: 1, dispersao: 1 } }, weapons, weapons[0], 'cascata')).toBeNull();
+  });
+
+  it('does not depend on standard camos', () => {
+    const { next } = applyCamo({}, weapons, 'a1', 'piroclasto', true, 5);
+    expect(next).toEqual({ a1: { piroclasto: 5 } });
+  });
+
+  it('removing piroclasto removes every step above it, and nothing from the standard camos', () => {
+    const pp: PlayerProgress = { a1: { ouro: 1, piroclasto: 2, terminus: 3, dispersao: 4, cascata: 5 } };
+    const { next, changes } = applyCamo(pp, weapons, 'a1', 'piroclasto', false, 9);
+    expect(next).toEqual({ a1: { ouro: 1 } });
+    expect(changes.map((c) => c.camo)).toEqual(['piroclasto', 'terminus', 'dispersao', 'cascata']);
+  });
+
+  it('removing a step removes the ones after it and keeps the ones before', () => {
+    const pp: PlayerProgress = { a1: { piroclasto: 2, terminus: 3, dispersao: 4, cascata: 5 } };
+    expect(applyCamo(pp, weapons, 'a1', 'dispersao', false, 9).next).toEqual({ a1: { piroclasto: 2, terminus: 3 } });
+  });
+
+  it('removing a standard camo keeps the prestige ones', () => {
+    const pp: PlayerProgress = { a1: { ouro: 1, piroclasto: 2 } };
+    expect(applyCamo(pp, weapons, 'a1', 'ouro', false, 9).next).toEqual({ a1: { piroclasto: 2 } });
+  });
+
+  it('scores 1, 2, 3 and 4 like the standard ones', () => {
+    const pp: PlayerProgress = { a1: { piroclasto: 1, terminus: 1, dispersao: 1, cascata: 1 }, s1: { ouro: 1, piroclasto: 1 } };
+    expect(camoTotals(pp, weapons)).toMatchObject({ piroclasto: 2, terminus: 1, dispersao: 1, cascata: 1, ouro: 1, score: 12 });
+  });
+});
+
 describe('camoTotals', () => {
   it('scores ouro 1, platina 2, dissonancia 3, divergencia 4 and ignores unknown weapons', () => {
     const pp: PlayerProgress = { ...full('dissonancia'), ghost: { ouro: 1 } };
-    expect(camoTotals(pp, weapons)).toEqual({ ouro: 3, platina: 3, dissonancia: 3, divergencia: 0, score: 18 });
+    expect(camoTotals(pp, weapons)).toEqual({ ouro: 3, platina: 3, dissonancia: 3, divergencia: 0, piroclasto: 0, terminus: 0, dispersao: 0, cascata: 0, score: 18 });
   });
 });

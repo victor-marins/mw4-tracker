@@ -3,14 +3,14 @@ import { discordMessage, milestones } from '@/lib/milestones';
 import { postToDiscord } from '@/lib/server/discord';
 import { currentState, handle, json, readBody } from '@/lib/server/http';
 import { setCamo, ValidationError } from '@/lib/server/repo';
-import { CAMOS, type Camo } from '@/lib/types';
+import { ALL_CAMOS, type Camo } from '@/lib/types';
 
 export async function POST(request: Request) {
   return handle(async () => {
     const body = await readBody(request);
     if (typeof body.player !== 'string') throw new ValidationError('player obrigatório');
     if (typeof body.weaponId !== 'string') throw new ValidationError('weaponId obrigatório');
-    if (typeof body.camo !== 'string' || !(CAMOS as readonly string[]).includes(body.camo)) {
+    if (typeof body.camo !== 'string' || !(ALL_CAMOS as readonly string[]).includes(body.camo)) {
       throw new ValidationError('Camuflagem inválida');
     }
     if (typeof body.value !== 'boolean') throw new ValidationError('value deve ser true ou false');
