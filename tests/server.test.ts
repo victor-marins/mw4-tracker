@@ -13,6 +13,7 @@ import {
   LEGACY_KEY,
   migrateLegacy,
   removePlayer,
+  setOperatorPrestige,
   setCamo,
   ValidationError,
 } from '@/lib/server/repo';
@@ -204,6 +205,17 @@ describe('members', () => {
     await expect(addPlayer('Marins', 'x', store)).rejects.toThrow('Nome inválido');
     await expect(addPlayer('Marins', 'nome com espaço', store)).rejects.toThrow('Nome inválido');
     await expect(addPlayer('Marins', 'pagno', store)).rejects.toThrow('já existe');
+  });
+
+  it('stores operator prestige per player, defaulting to 0 and bounded to 0..10', async () => {
+    expect((await getState(store)).operatorPrestige).toEqual({ Marins: 0, NoobMaszter: 0, Pagno: 0, Willlemes: 0, itnaS: 0 });
+    await setOperatorPrestige('Pagno', 7, store);
+    await setOperatorPrestige('Pagno', 10, store);
+    expect((await getState(store)).operatorPrestige.Pagno).toBe(10);
+    await expect(setOperatorPrestige('Pagno', 11, store)).rejects.toThrow('0 a 10');
+    await expect(setOperatorPrestige('Pagno', -1, store)).rejects.toThrow('0 a 10');
+    await expect(setOperatorPrestige('Pagno', 2.5, store)).rejects.toThrow('0 a 10');
+    await expect(setOperatorPrestige('Fantasma', 1, store)).rejects.toBeInstanceOf(ValidationError);
   });
 
   it('removes a member but keeps their progress for a later re-add', async () => {

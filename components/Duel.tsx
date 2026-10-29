@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { camoTotals, categoryTarget, countInCategory } from '@/lib/rules';
 import { highestCamo } from '@/lib/stats';
-import { ALL_CAMOS, CAMOS, CAMO_LABELS, type StandardCamo, type TrackerState, type Weapon } from '@/lib/types';
+import { ALL_CAMOS, CAMOS, CAMO_LABELS, MAX_OPERATOR_PRESTIGE, type StandardCamo, type TrackerState, type Weapon } from '@/lib/types';
 import { CATEGORIES } from '@/lib/weapons';
 import { CAMO_STYLE, inputClass, playerColor, SectionTitle } from './ui';
 
@@ -54,6 +54,7 @@ export function Duel({ state, me }: { state: TrackerState; me: string }) {
 
   const rows: Array<{ label: string; a: number; b: number; max?: number }> = [
     { label: 'Score', a: totalsA.score, b: totalsB.score },
+    { label: 'Prestígio de operador', a: state.operatorPrestige[a] ?? 0, b: state.operatorPrestige[b] ?? 0, max: MAX_OPERATOR_PRESTIGE },
     ...ALL_CAMOS.map((camo) => ({ label: CAMO_LABELS[camo], a: totalsA[camo], b: totalsB[camo], max: state.weapons.length })),
     ...CATEGORIES.map((cat) => ({
       label: `Ouros · ${cat}`,

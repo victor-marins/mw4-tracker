@@ -71,9 +71,12 @@ export interface FeedEvent {
   action: 'unlock' | 'remove';
 }
 
+export const MAX_OPERATOR_PRESTIGE = 10;
+
 export interface TrackerState {
   players: string[];
   weapons: Weapon[];
   progress: Progress;
   feed: FeedEvent[];
+  operatorPrestige: Record<string, number>;
 }

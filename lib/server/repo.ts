@@ -4,6 +4,7 @@ import { HISTORY_START, UNDATED_AT } from '../stats';
 import {
   ALL_CAMOS,
   CAMOS,
+  MAX_OPERATOR_PRESTIGE,
   type Camo,
   type FeedEvent,
   type PlayerProgress,
@@ -23,6 +24,7 @@ export const KEYS = {
   migrated: `${PREFIX}migrated`,
   players: `${PREFIX}players`,
   backfilled: `${PREFIX}backfilled`,
+  operatorPrestige: `${PREFIX}operator-prestige`,
 };
 export const LEGACY_KEY = 'mw4_tracker_data';
 const FEED_LIMIT = 200;
@@ -153,10 +155,11 @@ export async function getPlayers(store: Store = getStore()): Promise<string[]> {
 export async function getState(store: Store = getStore()): Promise<TrackerState> {
   await ensureReady(store);
   const players = await getPlayers(store);
-  const [weapons, feedRaw, progressHashes] = await Promise.all([
+  const [weapons, feedRaw, progressHashes, prestigeRaw] = await Promise.all([
     getWeapons(store),
     store.lRange(KEYS.feed, 0, FEED_LIMIT - 1),
     Promise.all(players.map((p) => store.hGetAll(KEYS.progress(p)))),
+    store.hGetAll(KEYS.operatorPrestige),
   ]);
   const progress: Progress = {};
   players.forEach((p, i) => {
@@ -170,7 +173,22 @@ export async function getState(store: Store = getStore()): Promise<TrackerState>
       .map((raw) => parse<FeedEvent>(raw))
       .filter((e): e is FeedEvent => e !== null && isStillUnlocked(e, progress))
       .sort((a, b) => b.ts - a.ts),
+    operatorPrestige: Object.fromEntries(
+      players.map((p) => [p, validPrestige(Number(prestigeRaw[p])) ? Number(prestigeRaw[p]) : 0]),
+    ),
   };
+}
+
+function validPrestige(level: unknown): level is number {
+  return Number.isInteger(level) && (level as number) >= 0 && (level as number) <= MAX_OPERATOR_PRESTIGE;
+}
+
+export async function setOperatorPrestige(player: unknown, level: unknown, store: Store = getStore()) {
+  if (typeof player !== 'string' || !(await getPlayers(store)).includes(player)) {
+    throw new ValidationError('Jogador desconhecido');
+  }
+  if (!validPrestige(level)) throw new ValidationError(`Prestígio deve ser de 0 a ${MAX_OPERATOR_PRESTIGE}`);
+  await store.hSet(KEYS.operatorPrestige, { [player]: String(level) });
 }
 
 function isStillUnlocked(event: FeedEvent, progress: Progress): boolean {

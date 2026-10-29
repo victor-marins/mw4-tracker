@@ -6,6 +6,7 @@ import {
   CAMOS,
   CAMO_LABELS,
   CAMO_SHORT_LABELS,
+  MAX_OPERATOR_PRESTIGE,
   PRESTIGE_CAMOS,
   PRESTIGE_CONDITIONS,
   isPrestigeCamo,
@@ -36,6 +37,7 @@ export function Arsenal({ tracker, me, viewed, now }: { tracker: Tracker; me: st
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [showAdd, setShowAdd] = useState(false);
   const canEdit = viewed === me;
+  const prestige = state.operatorPrestige[viewed] ?? 0;
   const pp = state.progress[viewed] ?? {};
 
   useEffect(() => {
@@ -118,7 +120,9 @@ export function Arsenal({ tracker, me, viewed, now }: { tracker: Tracker; me: st
 
   return (
     <div>
-      <div className="bg-[#14171c] rounded-xl border border-slate-800 p-4 mb-8 flex items-center justify-between relative overflow-hidden">
+      <div
+        className={`bg-[#14171c] rounded-xl border border-slate-800 p-4 mb-8 flex items-center justify-between relative overflow-hidden ${canEdit ? '' : 'pt-10'}`}
+      >
         {!canEdit && (
           <div className="absolute top-0 right-0 bg-red-900/50 text-red-200 text-[10px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
             Modo leitura (só {viewed} edita)
@@ -130,6 +134,29 @@ export function Arsenal({ tracker, me, viewed, now }: { tracker: Tracker; me: st
             <div className="text-slate-500 text-xs font-bold tracking-widest uppercase">Arsenal de</div>
             <div className={`text-2xl font-black uppercase ${canEdit ? 'text-slate-100' : 'text-slate-400'}`}>{viewed}</div>
           </div>
+        </div>
+        <div className="flex flex-col items-end gap-1 mt-2 sm:mt-0">
+          <label htmlFor="operator-prestige" className="text-slate-500 text-xs font-bold tracking-widest uppercase">
+            Prestígio de operador
+          </label>
+          {canEdit ? (
+            <select
+              id="operator-prestige"
+              value={prestige}
+              onChange={(e) => tracker.setOperatorPrestige(me, Number(e.target.value))}
+              className={`${inputClass} w-auto! font-bold`}
+            >
+              {Array.from({ length: MAX_OPERATOR_PRESTIGE + 1 }, (_, level) => (
+                <option key={level} value={level}>
+                  {level === 0 ? 'Prestígio 0' : `Prestígio ${level}`}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span id="operator-prestige" className="text-lg font-black text-amber-400">
+              ★ {prestige}
+            </span>
+          )}
         </div>
       </div>
 

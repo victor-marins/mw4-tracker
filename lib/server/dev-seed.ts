@@ -33,6 +33,10 @@ export async function seedFromProduction(store: Store, baseUrl: string) {
       Object.fromEntries(Object.entries(progress).map(([id, wp]) => [id, JSON.stringify(wp)])),
     );
   }
+  await store.hSet(
+    KEYS.operatorPrestige,
+    Object.fromEntries(Object.entries(state.operatorPrestige ?? {}).map(([p, level]) => [p, String(level)])),
+  );
   await appendFeed(store, [...state.feed].reverse());
   console.warn(`[dev] dados copiados de ${baseUrl}; alterações locais não vão para produção`);
 }

@@ -84,9 +84,18 @@ export function useTracker() {
     [mutate],
   );
 
+  const setOperatorPrestige = useCallback(
+    (player: string, level: number) =>
+      mutate('/api/operator-prestige', 'POST', { player, level }, (s) => ({
+        ...s,
+        operatorPrestige: { ...s.operatorPrestige, [player]: level },
+      })),
+    [mutate],
+  );
+
   const clearError = useCallback(() => setError(null), []);
 
-  return { state, lastSync, syncing, error, clearError, reload: load, mutate, setProgress };
+  return { state, lastSync, syncing, error, clearError, reload: load, mutate, setProgress, setOperatorPrestige };
 }
 
 export type Tracker = ReturnType<typeof useTracker>;

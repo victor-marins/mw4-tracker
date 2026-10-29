@@ -1,7 +1,7 @@
 'use client';
 import { camoTotals } from '@/lib/rules';
 import type { TrackerState } from '@/lib/types';
-import { playerColor } from './ui';
+import { playerColor, PrestigeBadge } from './ui';
 
 const PODIUM_STYLES: Record<number, string> = {
   1: 'border-yellow-500 bg-yellow-500/10 text-yellow-400 h-72 md:h-80 shadow-[0_0_20px_rgba(234,179,8,0.2)] md:-translate-y-4',
@@ -58,6 +58,9 @@ export function Ranking({ state }: { state: TrackerState }) {
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: playerColor(state.players, player) }} />
                 {player}
               </div>
+              <div className="mt-1 flex justify-center">
+                <PrestigeBadge level={state.operatorPrestige[player] ?? 0} />
+              </div>
               <div className="text-xs mt-2 opacity-70">SCORE</div>
               <div className="text-2xl md:text-4xl font-mono font-bold">{totals.score}</div>
             </div>
@@ -80,6 +83,7 @@ export function Ranking({ state }: { state: TrackerState }) {
               <div className="text-slate-200 font-bold text-lg flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: playerColor(state.players, player) }} />
                 {player}
+                <PrestigeBadge level={state.operatorPrestige[player] ?? 0} />
               </div>
             </div>
             <div className="flex items-center gap-6">

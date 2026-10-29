@@ -69,6 +69,17 @@ export function PlayerName({ players, player, className = '' }: { players: strin
   );
 }
 
+export function PrestigeBadge({ level }: { level: number }) {
+  return (
+    <span
+      className="inline-flex items-center rounded border border-amber-500/60 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-black leading-none text-amber-400"
+      title={`Prestígio de operador ${level}`}
+    >
+      ★ {level}
+    </span>
+  );
+}
+
 export function SectionTitle({ children, hint }: { children: ReactNode; hint?: ReactNode }) {
   return (
     <div className="mb-4">
